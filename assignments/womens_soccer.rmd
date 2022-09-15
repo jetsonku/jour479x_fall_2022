@@ -57,7 +57,7 @@ matches_2021 %>%
 ```{r}
 matches_2022 %>% 
     group_by(team) %>%
-  filter(result == "T") %>%
+  filter(outcome == "Draw") %>%
     summarize(draws = n()) %>%
   arrange(desc(draws))
 
@@ -70,5 +70,31 @@ matches_2022 %>%
 matches_2022 %>% 
   filter(team == "Maryland Terrapins, Terps") %>%
     summarize(date, team, opponent, result, corners, defensive_corners) %>%
-      mutate(corner_diff = corners - defensive_corners)
+      mutate(corner_diff = corners - defensive_corners) %>% 
+  arrange(desc(corner_diff))
 ```
+
+```{r}
+correlations <- read_csv("C:/Users/jetso/Documents/jour479x_fall_2022/data/ncaa_womens_soccer_matchstats_2022.csv")
+```
+```{r}
+newcorrelations <- correlations %>% 
+  mutate(
+    differential = goals - defensive_goals
+    )
+```
+
+
+```{r}
+newcorrelations %>% summarise(correlation = cor(differential, fouls, method="pearson"))
+
+```
+```{r}
+newcorrelations %>% 
+  summarise(correlation = cor(differential, yellow_cards, method="pearson"))
+```
+```{r}
+fit <- lm(differential ~ fouls, data = newcorrelations)
+summary(fit)
+```
+
