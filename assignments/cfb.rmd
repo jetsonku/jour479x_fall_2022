@@ -20,9 +20,26 @@ logs <- logs %>% mutate(differential = TeamScore - OpponentScore)
 fit <- lm(differential ~ Penalties, data = logs)
 summary(fit)
 ```
+The p-value of this model is ~0.02. This is less than an alpha level of 0.05, meaning the relationship is considered statistically significant, i.e. results are not random. The adjusted r-squared value is very very low however, < 0.001. This means that almost none of the variability in point differential can be expained by the number of penalties a team gets. This regression is really not useful.
+
 ```{r}
 logs <- logs %>% mutate(TOdiff = DefTotalTurnovers - TotalTurnovers)
-model1 <- lm(differential ~ Penalties + TOdiff + DefPassingPct + DefRushingAvg, data=logs)
+logs <- logs %>% mutate(DPassPctdiff = PassingPct - DefPassingPct)
+logs <- logs %>% mutate(DRushAvgdiff = RushingAvg - DefRushingAvg)
+
+model1 <- lm(differential ~ Penalties + TOdiff + DPassPctdiff + DRushAvgdiff, data=logs)
 summary(model1)
 ```
+Here I chose to incorporate the turnover differential as well as two measures of the margins in offensive efficiency: passing percentage and yards per rush. If one team is more efficient than the other and turns the ball over less, you would probably expect them to win. The results match this intuition - the p-value is very small, meaning there is a significant relationship. The adj. r-squared is 0.71, which is very strong for a model of this type. This indicates the model is usable to predict the differential based on these stats.
 
+```{r}
+close_games <- logs %>% filter(abs(TeamScore - OpponentScore) < 10)
+```
+
+```{r}
+model1 <- lm(differential ~ Penalties + TOdiff + DPassPctdiff + DRushAvgdiff, data=close_games)
+summary(model1)
+```
+If we define close games as games where the final score was within 10 points - a TD and a FG - the p-value is still quite low but the R-squared is a lot lower. This makes sense. In games that are evenly matched, the differences in efficiency and turnovers are likely to be closer. Therefore the final score is closer to a coin flip. The models above are trained on data sets with blowouts where these margins are a lot higher and it can experience a little confirmation bias. Unfortunately, we should probably be a little more hesitant predicting the outcome of games where these parameters are close to 0.
+
+There might be a relationship between penalties and point differential, but if there is, it's not enough to only use the number of penalties to try and predict. In our first model, we saw that the relationship was too weak to be useful. This is not to say that penalties have no effect on the outcome of a game. There are other interesting routes we could take with this question. Maybe penalties have a greater effect in close games. Maybe the timing of the penalty and its effect on the expected points of the drive can give us greater context to the penalties that a team gets. An unsportsmanlike conduct penalty after a 99 yd kick return TD is a lot different than a defensive pass interference that brings the offense to the 10 yd line in a tie game with 30 seconds left. I think this last idea is one that could lead to a story. It would be interesting to make a list of the most consequential penalties on the outcome of the game based on their timing and effect. 
