@@ -1,18 +1,28 @@
 ---
-title: "R Notebook"
+title: "cfb.rmd"
 output: html_notebook
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
 ```{r}
-plot(cars)
+library(tidyverse)
+library(cfbfastR)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+```{r}
+logs <- read_csv("http://mattwaite.github.io/sportsdatafiles/footballlogs1121.csv")
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+logs <- logs %>% mutate(differential = TeamScore - OpponentScore)
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+fit <- lm(differential ~ Penalties, data = logs)
+summary(fit)
+```
+```{r}
+logs <- logs %>% mutate(TOdiff = DefTotalTurnovers - TotalTurnovers)
+model1 <- lm(differential ~ Penalties + TOdiff + DefPassingPct + DefRushingAvg, data=logs)
+summary(model1)
+```
+
