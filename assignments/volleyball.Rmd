@@ -1,0 +1,87 @@
+---
+title: "volleyball"
+output: html_document
+date: "2022-10-02"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+logs <- read_csv("https://raw.githubusercontent.com/dwillis/NCAAWomensVolleyballData/main/data/ncaa_womens_volleyball_matchstats_2022.csv")
+```
+
+```{r}
+glimpse(logs)
+```
+I want to add in hitting percentage. If we add this, we don't really need total hits and errors as z-scores - that would be redundant evaluation. Here we add up the totals for each team so that we can calculate the z-scores we want.
+```{r}
+averages <- logs %>% 
+              group_by(team) %>%  
+                  summarise(total_sets = sum(s),
+                      total_kills = sum(kills), total_errors = sum(errors),
+                      total_totalattacks = sum(total_attacks), 
+                      total_digs = sum(digs), 
+                      total_digsperset = total_digs/total_sets,
+                      total_hittingpct = (total_kills-total_errors)/total_totalattacks) %>% mutate(
+    hitzscore = as.numeric(scale(total_hittingpct, center = TRUE, scale = TRUE)),
+    digszscore = as.numeric(scale(total_digsperset, center = TRUE, scale = TRUE)),
+)
+
+```
+
+To get the best teams based on these z-scores, we can add them both and arrange by descending score. Tulsa tops the list, mostly because of their extremely high dig score. Rice, Princeton, and NIU seem to have both digs and hitting percentage fairly high.
+```{r}
+averages %>% arrange(desc(hitzscore+digszscore))
+```
+Let's plot all the teams and see where Maryland ranks.
+```{r}
+md <- averages %>% filter(team == "Maryland Terrapins, Terps")
+ggplot() + 
+  geom_point(data=averages, aes(x=hitzscore, y=digszscore)) + 
+  geom_point(data=md, aes(x=hitzscore, y=digszscore), color="red")
+```
+Not that great in either metric, but at least above average for hitting percentage.
+
+To find similar teams, we'll cluster based on these two metrics.
+```{r}
+library(cluster)
+
+set.seed(1234)
+
+avgs_scaled <- averages %>% select(hitzscore, digszscore) %>% na.omit()
+```
+
+```{r}
+# function to compute total within-cluster sum of square 
+wss <- function(k) {
+  kmeans(avgs_scaled, k, nstart = 10 )$tot.withinss
+}
+
+# Compute and plot wss for k = 1 to k = 15
+k.values <- 1:15
+
+# extract wss for 2-15 clusters
+wss_values <- map_dbl(k.values, wss)
+
+plot(k.values, wss_values,
+       type="b", pch = 19, frame = FALSE, 
+       xlab="Number of clusters K",
+       ylab="Total within-clusters sum of squares")
+```
+We'll go with 7 clusters.
+```{r}
+clusters <- kmeans(avgs_scaled, centers = 7, nstart = 25)
+clusters
+```
+Maryland is in the 5th when I run it. Let's see who else is in the 5th cluster.
+```{r}
+teamcluster <- data.frame(averages, clusters$cluster)
+cluster_5 <- teamcluster %>% filter(clusters.cluster == 5)
+cluster_5 %>% arrange(desc(digszscore))
+```
+These are all teams with average-slightly above average hitting and below average digs.
+
+Illinois and Delaware St. appear to be some of Maryland's closest neighbors.
