@@ -1,0 +1,18 @@
+---
+title: "background"
+author: "Jetson Ku"
+date: "2022-10-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+I'm going to be further exploring my first question, the relationship between social media and NIL valuations in the On3 database. I specifically want to look at college football players. It doesn't seem like there is a very strong correlation between the two, but exploring that data would be interesting to see who might be considered over or undervalued. (For some reason our highest valued player is... Mason Lunsford? Who doesn't post extremely often or have a lot of followers - his value just inexplicably rose $200,000 between August and September)
+
+To start, I will need to scrape the On3 database myself for the valuations and social media followings. This shouldn't be too difficult - I will probably write a scraper in Python and import it as a .csv in R.
+
+One step further that I can take on this is joining my dataframe with PFF grades for this season so far. Perhaps Mason Lunsford's solid start on the offensive line is what made him increase so much.
+
+My question already has been explored by On3 obviously, since they are the ones collecting and providing the data. They have a "per post value" for each athlete that is apparently the cost of an advertisement via their account. Each athlete's valuation is influenced by Performance, Influence, and Exposure, according to the website. Only the athlete themself can see these ratings, but I want to deduce how much social media plays into it. 
