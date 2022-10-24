@@ -1,0 +1,891 @@
+School,rank
+Ohio State,1
+Georgia,2
+Alabama,3
+Michigan,4
+Tennessee,5
+Clemson,6
+TCU,7
+Oklahoma State,8
+Penn State,9
+Texas,10
+Ole Miss,11
+Kansas State,12
+Oregon,13
+USC,14
+LSU,15
+Utah,16
+Illinois,17
+Wake Forest,18
+Cincinnati,19
+Mississippi State,20
+Texas Tech,21
+Kentucky,22
+Baylor,23
+Syracuse,24
+Purdue,25
+UCLA,26
+Maryland,27
+Oklahoma,28
+Iowa State,29
+South Carolina,30
+NC State,31
+Arkansas,32
+North Carolina,33
+Notre Dame,34
+Minnesota,35
+Oregon State,36
+Florida,37
+Iowa,38
+Wisconsin,39
+Tulane,40
+Washington,41
+Texas A&M,42
+Florida State,43
+Kansas,44
+Louisville,45
+Auburn,46
+UCF,47
+Washington State,48
+Liberty,49
+Michigan State,50
+Pittsburgh,51
+West Virginia,52
+Houston,53
+CS Sacramento,54
+Coastal Carolina,55
+Troy,56
+BYU,57
+Missouri,58
+Boise State,59
+UTSA,60
+Appalachian State,61
+East Carolina,62
+James Madison,63
+S Dakota State,64
+Western Kentucky,65
+Nebraska,66
+Stanford,67
+Indiana,68
+Rutgers,69
+SMU,70
+South Alabama,71
+Air Force,72
+Memphis,73
+Louisiana,74
+Duke,75
+Arizona State,76
+Marshall,77
+UAB,78
+California,79
+Weber State,80
+Virginia,81
+Georgia Southern,82
+San Jose State,83
+Miami,84
+Wyoming,85
+Georgia Tech,86
+Montana State,87
+Vanderbilt,88
+Toledo,89
+Tulsa,90
+Arizona,91
+San Diego State,92
+Southern Miss,93
+Rice,94
+N Dakota State,95
+Buffalo,96
+Navy,97
+Ohio,98
+Chattanooga,99
+Boston College,100
+Old Dominion,101
+Fresno State,102
+Army,103
+Virginia Tech,104
+Georgia State,105
+Northwestern,106
+Montana,107
+Middle Tennessee State,108
+Holy Cross,109
+Utah State,110
+Florida Atlantic,111
+North Texas,112
+Eastern Michigan,113
+Mercer,114
+Incarnate Word,115
+Miami (OH),116
+UNLV,117
+Samford,118
+S Illinois,119
+Colorado,120
+Idaho,121
+SE Missouri State,122
+Western Michigan,123
+Texas State,124
+Kent State,125
+Riverside CC,126
+UTEP,127
+Ball State,128
+North Dakota,129
+Arkansas State,130
+Grand Valley State,131
+William & Mary,132
+Furman,133
+Delaware,134
+Jackson State,135
+Louisiana-Monroe,136
+Princeton,137
+Bowling Green,138
+Sam Houston State,139
+Illinois State,140
+Richmond,141
+Northern Iowa,142
+Northern Illinois,143
+UC Davis,144
+Louisiana Tech,145
+Colorado State,146
+Central Michigan,147
+USF,148
+Ferris State,149
+Ouachita,150
+Austin Peay,151
+Jacksonville State,152
+Elon,153
+SE Louisiana,154
+South Dakota,155
+Nevada,156
+TN Martin,157
+Penn,158
+Pittsburg State,159
+Connecticut,160
+New Hampshire,161
+Rhode Island,162
+E Washington,163
+Missouri State,164
+Temple,165
+Angelo State,166
+Villanova,167
+Youngstown State,168
+New Mexico,169
+Delta State,170
+Hawaii,171
+Cent Arkansas,172
+E Kentucky,173
+SF Austin,174
+Col San Mateo,175
+Fordham,176
+FIU,177
+Abilene Chr,178
+Mt San Antonio,179
+New Mexico State,180
+West Florida,181
+Northern Arizona,182
+TX A&M Commerce,183
+Yale,184
+Harvard,185
+NW Missouri,186
+Golden West,187
+Campbell,188
+Colorado Mines,189
+NE Kearney,190
+ETSU,191
+Gardner Webb,192
+Harding,193
+Charlotte,194
+Monmouth NJ,195
+Emporia State,196
+Southern Univ,197
+Kennesaw,198
+Fullerton Col,199
+Tarleton State,200
+Citadel,201
+Akron,202
+Ashland,203
+Washburn,204
+Portland State,205
+Lindenwood,206
+Florida A&M,207
+St Francis PA,208
+Saginaw Val,209
+Butte Col,210
+W Carolina,211
+Cerritos Col,212
+Sierra Col,213
+Shepherd,214
+Southern Utah,215
+Indiana State,216
+Prairie View,217
+Cornell,218
+NC A&T,219
+Massachusetts,220
+Dartmouth,221
+Laney,222
+Indiana PA,223
+Wofford,224
+Tennessee State,225
+West Georgia,226
+N Central IL,227
+Maine,228
+NC Central,229
+City Col San Fran,230
+Columbia,231
+Merrimack,232
+Indianapolis,233
+Henderson State,234
+S Carolina State,235
+Alcorn State,236
+Morningside,237
+Lafayette,238
+Fresno City Col,239
+TX Southern,240
+Alabama State,241
+C Oklahoma,242
+Mt Union,243
+Palomar Col,244
+Towson,245
+Colgate,246
+Bakersfield Col,247
+East Central OK,248
+M Hardin-Baylor,249
+Sacred Heart,250
+Hampton,251
+MO Western,252
+Idaho State,253
+Stony Brook,254
+Nicholls State,255
+SUNY Albany,256
+Col of the Canyons,257
+Truman State,258
+Ventura Col,259
+E Illinois,260
+N Colorado,261
+Tennessee Tech,262
+W Illinois,263
+American River,264
+Cal Poly,265
+Davenport,266
+Charleston So,267
+Diablo Val,268
+Trinity CT,269
+SE Oklahoma,270
+Slippery Rock,271
+Alabama A&M,272
+St Thomas MN,273
+Lindsey Wilson,274
+El Camino Col,275
+VMI,276
+Davidson,277
+Lenoir-Rhyne,278
+CSU-Pueblo,279
+Utah Tech,280
+Duquesne,281
+W Texas A&M,282
+McNeese State,283
+Mt San Jacinto,284
+Brown,285
+Grand View,286
+Notre Dame OH,287
+TX A&M K'ville,288
+Newberry,289
+Long Beach City Col,290
+North Alabama,291
+Tiffin,292
+San Diego Mesa,293
+Johns Hopkins,294
+Benedict,295
+Hutchinson CC,296
+Northwestern LA,297
+Virginia Union,298
+Modesto JC,299
+C Washington,300
+Wingate,301
+Albany GA,302
+Citrus Col,303
+MO Southern,304
+Bryant,305
+Allan Hancock,306
+Sioux Falls,307
+Bethel TN,308
+MN Mankato,309
+North Greenville,310
+New Haven,311
+Mississippi Col,312
+Kutztown,313
+East LA Col,314
+San Diego,315
+Bemidji State,316
+Tusculum,317
+Valdosta State,318
+C Missouri,319
+WI Whitewater,320
+Dayton,321
+Valparaiso,322
+West Alabama,323
+Fort Hays State,324
+Stonehill,325
+Lehigh,326
+WI LaCrosse,327
+Houston Chr,328
+W Oregon,329
+S Arkansas,330
+California PA,331
+Col of the Sequoias,332
+Reedley,333
+Butler,334
+Hardin-Simmons,335
+Northwestern IA,336
+OH Dominican,337
+Mars Hill,338
+Murray State,339
+Augustana SD,340
+Feather River,341
+Linfield,342
+Delaware State,343
+Santa Rosa JC,344
+Bethune-Cookman,345
+Howard,346
+Findlay,347
+Western State CO,348
+Winona State,349
+Midwest TX State,350
+Bucknell,351
+Middlebury,352
+Trinity TX,353
+Iowa Western CC,354
+Saddleback,355
+St John's MN,356
+Wartburg,357
+Grambling,358
+S Dakota Tech,359
+IN Wesleyan,360
+Arkansas Tech,361
+Col of Idaho,362
+Ark Monticello,363
+Cortland State,364
+Ithaca,365
+Bentley,366
+Wayne State NE,367
+Susquehanna,368
+Morgan State,369
+Frostburg State,370
+Marian IN,371
+Michigan Tech,372
+Norfolk State,373
+MN Duluth,374
+Ark Pine Bluff,375
+Limestone,376
+Permian Basin,377
+SW Oklahoma,378
+Assumption,379
+Santa Barbara City,380
+Georgetown,381
+Sacramento City,382
+Wheaton IL,383
+Northern State SD,384
+W New Mexico,385
+Keiser,386
+Antelope Val CC,387
+Carnegie Mellon,388
+John Carroll,389
+MT Tech,390
+Wheeling,391
+Bowie State,392
+Black Hills State,393
+Gannon,394
+Wesleyan CT,395
+Randolph-Macon,396
+NM Military,397
+Central Conn,398
+McKendree,399
+Chaffey,400
+Charleston WV,401
+Bethel MN,402
+Southern Nazarene,403
+WI Oshkosh,404
+Benedictine KS,405
+Wagner,406
+SW Baptist,407
+Concord,408
+Rocky Mtn,409
+Carroll MT,410
+Lamar,411
+Delaware Val,412
+N Michigan,413
+Georgetown KY,414
+Albion,415
+Colby,416
+Contra Costa,417
+WI River Falls,418
+WI Platteville,419
+West Chester,420
+Fayetteville State,421
+Robert Morris,422
+Morehead State,423
+Hillsdale,424
+Barton,425
+MS Valley State,426
+Tufts,427
+Reinhardt,428
+Trinity Valley CC,429
+WV State,430
+NW Mississippi,431
+Heidelberg,432
+Stetson,433
+OK Baptist,434
+Glenville State,435
+Marist,436
+Washington StateL,437
+St Anselm,438
+Fort Valley State,439
+Snow Col,440
+Shasta Col,441
+NC Pembroke,442
+St Thomas FL,443
+Foothill Col,444
+Lane,445
+Muhlenberg,446
+Pace,447
+LIU Post,448
+Wayne State MI,449
+Chowan,450
+Shippensburg,451
+Emory & Henry,452
+Carson-Newman,453
+Col of the Desert,454
+Shorter,455
+Chadron State,456
+Merced Col,457
+Jones Col,458
+CO Mesa,459
+Butler Co-KS,460
+Kentucky State,461
+Fairmont State,462
+Missouri S&T,463
+WI Stateout,464
+Pasadena City Col,465
+Salisbury,466
+Howard Payne,467
+Quincy,468
+Ursinus,469
+Edinboro,470
+Wash & Jeff,471
+E New Mexico,472
+Bethel KS,473
+E Stateroudsburg,474
+NM Highlands,475
+MT Western,476
+Moorpark,477
+Birmingham So,478
+Huntingdon,479
+NW Oklahoma State,480
+Santa Ana Col,481
+SW Minnesota,482
+Avila,483
+Drake,484
+Union NY,485
+Cumberlands KY,486
+Kilgore,487
+Iowa Cent,488
+Tuskegee,489
+KS Wesleyan,490
+Tyler JC,491
+NE Oklahoma,492
+Southwestern KS,493
+Williams,494
+Virginia State,495
+Moorhead State,496
+Southern Oregon,497
+Miles,498
+George Fox,499
+Gust Adolphus,500
+Thomas More,501
+Baldwin-Wallace,502
+Midland NE,503
+Bowdoin,504
+Central IA,505
+Bloomsburg,506
+Grossmont,507
+Coffeyville CC,508
+Millersville,509
+Glendale CA,510
+Evangel,511
+Grove City,512
+Berry,513
+Navarro,514
+Pikeville,515
+Chabot,516
+Amherst,517
+Dordt,518
+Lake Erie,519
+UVA-Wise,520
+West Liberty,521
+Hamilton,522
+Westminster PA,523
+Claremont M.S.,524
+Bates,525
+St Xavier IL,526
+Dickinson State ND,527
+Mercyhurst,528
+Concordia MI,529
+Belhaven MS,530
+Savannah State,531
+Case Western,532
+Faulkner,533
+Adams State,534
+Alma,535
+TX Wesleyan,536
+Ottawa AZ,537
+Northwood MI,538
+Bridgewater VA,539
+Morrisville State,540
+Independence CC,541
+Rensselaer,542
+Trine,543
+Endicott,544
+Stevenson,545
+Utica,546
+Cumberland TN,547
+Presbyterian,548
+MS Gulf Coast,549
+Siskiyous,550
+Roosevelt,551
+Mid Am Nazarene,552
+Marietta,553
+Southeastern FL,554
+Mary ND,555
+DePauw,556
+Southwestern CA,557
+Shaw NC,558
+Garden City CC,559
+Hobart & Smith,560
+Col of the Redwoods,561
+E Mississippi CC,562
+Frank & Marsh,563
+Pomona-Pitzer,564
+Whitworth,565
+Georgia Mil,566
+Muskingum,567
+Dubuque,568
+S Connecticut,569
+San Joaquin Delta,570
+Siena Hts,571
+Webber,572
+Aurora,573
+De Anza Col,574
+Springfield,575
+Mt State Joseph,576
+Bluefield VA,577
+Monterey Peninsula,578
+KY Wesleyan,579
+Centre,580
+Olivet Naz,581
+Shenandoah,582
+Wabash,583
+Ave Maria,584
+Langston,585
+Baker KS,586
+Catawba,587
+Brockport State,588
+West Hills,589
+Hastings,590
+Washington & Lee,591
+Pearl River CC,592
+King's PA,593
+Clarion,594
+Culver-Stockton,595
+Hope,596
+Wittenberg,597
+Adrian,598
+Chapman,599
+Concordia Mhd,600
+Peru State,601
+Arizona Chr,602
+San Bernardino Val,603
+Coe,604
+St Francis IL,605
+Erskine,606
+Victor Valley,607
+St Francis IN,608
+Lackawanna,609
+Pac Lutheran,610
+Seton Hill,611
+E Texas Bap,612
+Augustana IL,613
+Clark Atlanta,614
+Edward Waters,615
+IL Wesleyan,616
+Wm Jewell,617
+Chris Newport,618
+Upper Iowa,619
+Orange Coast,620
+Hinds CC,621
+Concordia NE,622
+Walsh,623
+Pacific OR,624
+Doane,625
+Cisco JC,626
+Hampden-Sydney,627
+Rowan,628
+Copiah-Lincoln,629
+Los Medanos,630
+Concordia SP,631
+Redlands,632
+San Jose City Col,633
+Sul Ross,634
+TX Lutheran,635
+Olivet MI,636
+NE MS CC,637
+Rose-Hulman,638
+McPherson,639
+Blinn,640
+Carleton MN,641
+Eastern Oregon,642
+Ohio Northern,643
+Monmouth IL,644
+Dickinson,645
+Lincoln MO,646
+Lycoming,647
+Waldorf,648
+Taylor IN,649
+Wilkes,650
+American Intl,651
+Merchant Marine,652
+Missouri Val,653
+William Penn,654
+West LA Col,655
+Denison,656
+Bluefield WV,657
+Loras,658
+Franklin Pierce,659
+Morehouse,660
+Lincoln PA,661
+Lebanon Val,662
+Clarke,663
+WI Eau Claire,664
+Apprentice,665
+Col of Dupage,666
+SW Assemb God,667
+Point,668
+Ohio Wesleyan,669
+St John Fisher,670
+NE OK A&M,671
+WV Wesleyan,672
+Maryville TN,673
+LA Harbor,674
+JC Smith,675
+Lincoln CA,676
+Louisiana Chr,677
+Ripon,678
+FL Memorial,679
+FDU Madison,680
+Kentucky Chr,681
+Campbellsville,682
+Simon Fraser,683
+Carroll WI,684
+Catholic,685
+Livingstone,686
+W Salem State,687
+MN State CTC,688
+Tabor,689
+Benedictine IL,690
+Valley City State,691
+VA-Lynchburg,692
+Hartnell,693
+Minot State,694
+Otterbein,695
+SW Univ TX,696
+Averett,697
+St Vincent,698
+Rhodes,699
+St Lawrence,700
+Dodge City CC,701
+Jamestown,702
+Wilmington OH,703
+Lawrence Tech,704
+Lake Forest,705
+Dakota State,706
+College of NJ,707
+Kean,708
+Brevard,709
+Holmes CC,710
+Coahoma CC,711
+Cal Lutheran,712
+Salve Regina,713
+Wm Paterson,714
+Central State OH,715
+Methodist,716
+Millsaps,717
+W New England,718
+Compton CC,719
+Itawamba CC,720
+Montclair State,721
+Eliz. City State,722
+Augsburg,723
+St Mary KS,724
+Monroe-NR,725
+Moravian,726
+St Norbert,727
+Chicago,728
+St Ambrose,729
+St Olaf,730
+MA Dartmouth,731
+Hendrix,732
+Santa Monica Col,733
+Hanover,734
+Ald-Broaddus,735
+Friends,736
+Lewis & Clark,737
+Waynesburg,738
+Mt Marty,739
+Plymouth State,740
+LA Valley Col,741
+McMurry,742
+Cent Methodist,743
+McDaniel,744
+Rochester NY,745
+Worcester Tech,746
+Ottawa KS,747
+Widener,748
+Dakota Wesleyan,749
+Lock Haven,750
+St Augustine's,751
+Alfred,752
+Graceland,753
+Allen,754
+Panhandle State,755
+Carthage,756
+ND State Science,757
+Nassau CC,758
+Cabrillo,759
+Ferrum,760
+SW Mississippi,761
+Wooster,762
+Bridgewater MA,763
+Ellsworth CC,764
+W Connecticut,765
+Austin Col,766
+Buena Vista,767
+Gettysburg,768
+Geneva,769
+Concordia WI,770
+Warner,771
+Itasca CC,772
+WI Stateevens Pt,773
+Highland CC KS,774
+Allegheny,775
+Norwich,776
+Briar Cliff,777
+Husson,778
+NC Wesleyan,779
+Franklin,780
+St Andrew's,781
+U New England,782
+Framingham State,783
+MIT,784
+MT State Northern,785
+Millikin,786
+Hocking,787
+Post,788
+East Central CC,789
+Capital,790
+Sterling,791
+MO Baptist,792
+Sussex Co CC,793
+Mayville State,794
+Fort Scott CC,795
+Alvernia,796
+Louisburg,797
+Ft Lewis,798
+Kalamazoo,799
+Misericordia,800
+Union KY,801
+Hartwick,802
+Illinois Col,803
+Gavilan,804
+Rochester C&T,805
+Wayland,806
+Guilford,807
+Kenyon,808
+Buffalo State,809
+Sewanee,810
+Iowa Wesleyan,811
+LaGrange,812
+Coast Guard,813
+Macalester,814
+Willamette,815
+Gallaudet,816
+NE Wesleyan,817
+Castleton,818
+Curry,819
+Alfred State,820
+Presentation,821
+Yuba,822
+Bethany WV,823
+Puget Sound,824
+Central Lakes,825
+Thiel,826
+Judson IL,827
+WI Lutheran,828
+La Verne,829
+Albright,830
+Trinity Intl,831
+Anna Maria,832
+Hamline,833
+North American,834
+Lakeland,835
+Greenville,836
+Nichols,837
+LA Pierce,838
+Elmhurst,839
+Hiram,840
+Northwestern MN,841
+S Virginia,842
+LA Southwest,843
+Bluffton,844
+MA Maritime,845
+SUNY Maritime,846
+Mesabi Range,847
+North Park,848
+Lyon,849
+MS Delta,850
+Juniata,851
+Bethany KS,852
+ASA Miami,853
+MN West C&T,854
+Greensboro,855
+St Scholastica,856
+Knox,857
+MN Morris,858
+Ark Baptist,859
+Simpson IA,860
+Manchester,861
+Luther IA,862
+Defiance,863
+Eureka,864
+Cornell IA,865
+Concordia IL,866
+Oberlin,867
+Ft Lauderdale,868
+Westfield State,869
+Keystone,870
+Anderson IN,871
+Worcester State,872
+Texas Col,873
+Hudson Val,874
+Dean,875
+Whittier,876
+Madonna,877
+Martin Luther,878
+Rockford,879
+Vermilion CC,880
+Grinnell,881
+Crown MN,882
+Beloit,883
+Fitchburg State,884
+Westminster MO,885
+Hilbert,886
+Erie CC,887
+Community Chr MI,888
+Finlandia,889
+Lawrence,890
