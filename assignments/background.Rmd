@@ -33,7 +33,8 @@ nil
 We got columns describing their school, conference, high school recruiting status, position, social media, and value. Hopefully this is enough to do some analysis on their valuations. First I want to see how some of these values look by conference. I'm taking the total value for a conference and dividing it by the sum of the followers in that conference.
 
 ```{r}
-avgs <- nil %>% group_by(Conference) %>% summarize(avgval = sum(Valuation)/sum(Twitter+TikTok+Instagram)) %>% arrange(desc(avgval))
+nil <- nil %>% mutate(followers = Twitter+TikTok+Instagram)
+avgs <- nil %>% group_by(Conference) %>% summarize(avgval = sum(Valuation)/sum(followers)) %>% arrange(desc(avgval))
 ```
 
 ```{r}
@@ -52,3 +53,115 @@ ggplot() +
 ```
 
 So it seems that Notre Dame is carrying the Independent schools to a high value per follower - worth more with less social media presence - while Jackson State has a lot of social media presence but not a lot of valuation. Everyone else is kind of in the middle. This might play into the narrative that Coach Prime and Jackson State like to market with their program - that chip on the shoulder that those players carry. Is their team undervalued? By scouts and by businesses? That's one question we might be able to answer.
+
+## Refining
+
+I'm going to poke through the data a little more before I start answering any questions. I want to see the top valued players and the most followed players.
+
+```{r}
+nil %>% arrange(desc(Valuation))
+```
+
+Who are the most followed?
+
+```{r}
+nil %>% arrange(desc(followers))
+```
+
+Now we can also look at which year of players is worth the most money. Is it tech-savvy freshmen or experienced and mature vets?
+
+```{r}
+avgs <- nil %>% group_by(`High School Class`) %>% summarize(avgval = sum(Valuation)/sum(followers)) %>% arrange(desc(avgval))
+ggplot() + 
+  geom_bar(
+    data=avgs, 
+    aes(x=reorder(`High School Class`, avgval),
+        weight=`avgval`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="How Much is a Follower Worth Based on Your High School Class?", 
+    x="Year", 
+    y="Value per Social Media Follower") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+Turns out there are some former players and coaches in this data. Sigh... Time to clean. To make things simple for our self, we are going to ignore all players that are in the high school class of 2016 and earlier.
+
+```{r}
+current <- nil %>% filter(`High School Class` > 2016) %>% arrange(desc(Valuation))
+avgs <- current %>% group_by(`High School Class`) %>% summarize(avgval = sum(Valuation)/sum(followers)) %>% arrange(desc(avgval))
+ggplot() + 
+  geom_bar(
+    data=avgs, 
+    aes(x=reorder(`High School Class`, avgval),
+        weight=`avgval`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="How Much is a Follower Worth Based on Your High School Class?", 
+    x="Year", 
+    y="Value per Social Media Follower") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+I also want to incorporate some of the data that On3 talks about in their explanation of their valuations. Massey ratings rank every team in college football. It's not a perfect solution but it's a rough comparison we can use here. I've scraped that data and it's in a csv.
+
+```{r}
+massey_ratings <- read_csv('../data/masseyratings.csv')
+```
+
+We'll now join it and make a multiple regression model to play around with
+
+```{r}
+with_rank <- left_join(nil, massey_ratings, by='School')
+fit <- lm(Valuation ~ followers, data = with_rank)
+summary(fit)
+ggplot() + 
+  geom_point(data=with_rank, aes(x=followers, y=Valuation)) +
+  geom_smooth(data=with_rank, aes(x=followers, y=Valuation), method="lm")
+```
+
+That's not a good model - and we can see why. Let's look at some of these variables and see if we can pick a better model.
+
+```{r}
+library(tidyverse)
+library(Hmisc)
+simpledata <- with_rank %>% 
+  select_if(is.numeric)
+cormatrix <- rcorr(as.matrix(simpledata))
+
+cormatrix$r
+```
+
+It seems TikTok followers aren't worth the same. The coefficient is lower than Instagram and Twitter. We'll also throw in High School recruiting rating and see what happens.
+
+```{r}
+fit <- lm(Valuation ~ Twitter + Instagram, data = with_rank)
+summary(fit)
+```
+
+The model with only Instagram and Twitter followers is much better. An interesting example of noisy data.
+
+```{r}
+fit <- lm(Valuation ~ Twitter + Instagram + rank, data = with_rank)
+summary(fit)
+```
+
+If we put in rank, we get a little better r-squared. Let's play the last trick up our sleeve - rating - and see what happens.
+
+```{r}
+fit <- lm(Valuation ~ Twitter + Instagram + rank + `High School Rating`, data = with_rank)
+summary(fit)
+```
+
+And even a little better. It seems we won't be getting much better with the data we have. Let's look at some of the data we predicted and its difference from the actual valuations.
+
+```{r}
+with_rank <- with_rank %>% mutate(pred = 7.27*Twitter + 2.053*Instagram + -0.01872*rank + 0.01145*`High School Rating` + 16990)
+with_rank <- with_rank %>% mutate(residual = Valuation-pred)
+with_rank %>% select(Name, School, Valuation, pred, residual) %>% arrange(desc(residual))
+with_rank %>% select(Name, School, Valuation, pred, residual) %>% arrange((residual))
+```
+
+So CJ Stroud is the most 'overvalued' and Travis Hunter is the most 'undervalued'. These are some interesting lists - particularly the undervalued list (negative residuals). We see some familiar names like Jacob Copeland. I'm a bit surprised Justyn Ross is on there.
