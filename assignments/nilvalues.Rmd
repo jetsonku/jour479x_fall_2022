@@ -1,0 +1,302 @@
+---
+title: "nilvalues"
+author: "Jetson Ku"
+date: "2022-10-30"
+output: html_document
+---
+
+# What's a Follower Worth? On3's College Football NIL Valuations Examined
+
+[On3.com](on3.com) is a mainstream recruiting service for college sports, compiling recruiting rankings from itself and the other three main services (Rivals, ESPN, and 247Sports), into what it boasts as the most comprehensive composite rating representative of industry sentiment. It also unveiled a new set of rankings in July 2021, when NIL laws went into effect across college sports. It has NIL valuations for thousands of college football players on most Division I teams across the country. I was able to scrape this data into a file which we can use to examine the origin of these valuations.
+
+```{r}
+library(tidyverse)
+nil <- read_csv('../data/nil_data.csv')
+```
+
+## Understanding Our Data
+
+We have information about each player in the database, including social media, roster, and biographical data.
+
+```{r}
+nil
+```
+
+The database as-is includes some former players. Our quick fix will be to filter out anyone whose high school graduation year was before 2017.
+
+```{r}
+current <- nil %>% filter(`High School Class` > 2016) %>% arrange(desc(Valuation))
+current
+```
+
+Here's Maryland's rankings.
+
+```{r}
+nil %>% filter(`High School Class` > 2016, School == "Maryland") %>% arrange(desc(Valuation))
+```
+
+This list was what initially caught my curiosity. Why Mason Lunsford? Before we attempt to answer this, we'll want to look further at our data and make sure it's all within the realm of possibility.
+
+I'm going to make a column with total followers and also look at the demographics of the dataframe.
+
+```{r}
+current <- current %>% mutate(followers = Twitter+TikTok+Instagram)
+counts <- current %>% group_by(`High School Class`) %>% summarize(count = n())
+ggplot() + 
+  geom_bar(
+    data=counts, 
+    aes(x=reorder(`High School Class`, count),
+        weight=`count`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="What Classes are Represented Most in On3 Valuations?", 
+    x="High School Class", 
+    y="Count") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+```{r}
+counts <- current %>% group_by(`Conference`) %>% summarize(count = n())
+ggplot() + 
+  geom_bar(
+    data=counts, 
+    aes(x=reorder(`Conference`, count),
+        weight=`count`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="What Conferences are Represented Most in On3 Valuations?", 
+    x="Conference", 
+    y="Count") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+## Value of Social Media
+
+Now that we have total followers across TikTok, Instagram, and Twitter, we can calculate average value per follower.
+
+```{r}
+avgs <- current %>% group_by(`High School Class`) %>% summarize(avgval = sum(Valuation)/sum(followers)) %>% arrange(desc(avgval))
+ggplot() + 
+  geom_bar(
+    data=avgs, 
+    aes(x=reorder(`High School Class`, avgval),
+        weight=`avgval`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="How Much is a Follower Worth Based on Your High School Class?", 
+    x="Year", 
+    y="Avg. Value per Social Media Follower") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+```{r}
+avgs <- current %>% group_by(`Conference`) %>% summarize(avgval = sum(Valuation)/sum(followers)) %>% arrange(desc(avgval))
+ggplot() + 
+  geom_bar(
+    data=avgs, 
+    aes(x=reorder(`Conference`, avgval),
+        weight=`avgval`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="How Much is a Follower Worth Based on Your Conference?", 
+    x="Year", 
+    y="Avg. Value per Social Media Follower") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+```{r}
+avgs <- current %>% group_by(`Position`) %>% summarize(avgval = sum(Valuation)/sum(followers)) %>% arrange(desc(avgval))
+ggplot() + 
+  geom_bar(
+    data=avgs, 
+    aes(x=reorder(`Position`, avgval),
+        weight=`avgval`)) + 
+  scale_y_continuous() + 
+  labs(
+    title="How Much is a Follower Worth Based on Your Position?", 
+    x="Position", 
+    y="Avg. Value per Social Media Follower") + 
+  theme_minimal() + 
+  coord_flip()
+```
+
+We can also look at school-level data and see which teams are worth the most on average.
+
+```{r}
+teams <- current %>% group_by(`School`) %>% summarize(avgval = mean(Valuation), count=n()) %>% arrange(desc(avgval))
+teams
+```
+
+To get an approximate idea of the distribution of valuations within each team, we can find the difference between the mean and the median. Higher differences mean a distribution is skewed more.
+
+```{r}
+teams <- current %>% group_by(`School`) %>% summarize(avgval = mean(Valuation), medval = median(Valuation), count=n()) %>% filter(count > 60) %>% mutate(diff = avgval-medval) %>% arrange(desc(diff))
+teams
+```
+
+## Recalculating Values
+
+Now let's see if we can use linear regression to recreate On3's valuations of players based on their social media following. We'll predict valuation as a function of total followers.
+
+```{r}
+fit <- lm(Valuation ~ followers, data = current)
+summary(fit)
+ggplot() + 
+  geom_point(data=current, aes(x=followers, y=Valuation)) +
+  geom_smooth(data=current, aes(x=followers, y=Valuation), method="lm")
+```
+
+On3 claims its valuations are a combination of a player's "Performance, Influence, and Exposure". We have influence - what might be a measure of a player's exposure. I chose to use their team's ranking in the Massey Ratings, which rank every team in college football.
+
+```{r}
+massey_ratings <- read_csv('../data/masseyratings.csv')
+with_rank <- left_join(current, massey_ratings, by='School')
+with_rank %>% arrange(desc(Valuation))
+```
+
+This time we'll look at our variables and try to improve the model.
+
+```{r}
+library(tidyverse)
+library(Hmisc)
+
+simpledata <- with_rank %>% 
+  select_if(is.numeric)
+cormatrix <- rcorr(as.matrix(simpledata))
+
+cormatrix$r
+```
+
+```{r}
+fit <- lm(Valuation ~ Twitter + Instagram, data = with_rank)
+summary(fit)
+```
+
+```{r}
+fit <- lm(Valuation ~ Twitter + Instagram + rank, data = with_rank)
+summary(fit)
+```
+
+```{r}
+with_rank <- with_rank %>% mutate(rating = replace_na(`High School Rating`, 70))
+fit <- lm(Valuation ~ Twitter + Instagram + rank + rating, data = with_rank)
+summary(fit)
+```
+
+If we calculate residuals, we can find players that are overvalued/undervalued according to our model, which - let's keep in mind - doesn't capture performance in college all that well.
+
+```{r}
+with_rank <- with_rank %>% mutate(predicted = predict(fit), residual = residuals(fit))
+with_rank %>% select(Name, School, Valuation, predicted, residual) %>% arrange(desc(residual))
+with_rank %>% select(Name, School, Valuation, predicted, residual) %>% arrange((residual))
+```
+
+```{r}
+with_rank %>% select(Name, School, Valuation, predicted, residual) %>% filter(School == "Maryland") %>% arrange(desc(residual))
+```
+
+```{r}
+summary(with_rank)
+```
+
+A big problem with our model seems to be the outliers: those who have inflated valuations or followers. We're going to filter these people out and get our "average Joes".
+
+```{r}
+followers_fence = 9800 + (1.5 * 9800-2056)
+valuation_fence = 48000 + (1.5 * 48000-22000)
+avg_joes <- with_rank %>% filter(followers < followers_fence) %>% filter(Valuation < valuation_fence)
+ggplot() + 
+  geom_point(data=avg_joes, aes(x=followers, y=Valuation)) +
+  geom_smooth(data=avg_joes, aes(x=followers, y=Valuation), method="lm")
+```
+
+```{r}
+fit <- lm(Valuation ~ Twitter + Instagram + rank + `High School Rating`, data = avg_joes)
+summary(fit)
+```
+
+Let's see where Maryland average Joe's fall in this scatter plot.
+
+```{r}
+library(ggrepel)
+md <- avg_joes %>% filter(School == "Maryland") %>% arrange(desc(followers))
+label <- md %>% top_n(1, wt=Valuation)
+ggplot() + 
+  geom_point(data=avg_joes, aes(x=followers, y=Valuation, colour="Rest of NCAA")) +
+  geom_point(data=md, aes(x=followers, y=Valuation, colour="Maryland")) +
+  geom_text_repel(
+    data=label, 
+    aes(x=followers, y=Valuation, label=Name)
+  ) +
+  geom_smooth(data=avg_joes, aes(x=followers, y=Valuation), color="black", method="lm") +
+  labs(title="What's up With Cam Edge?", x="Followers", y="Valuation", subtitle="The freshman quarterback has the 8th highest value on the Terrapins despite \nhaving the 21st largest social media presence", caption="Source: On3 | By Jetson Ku")  + theme_gray() + 
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 8), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank()
+    ) +
+  scale_colour_manual(values = c("red", "gray"))
+```
+
+Cam Edge sticks out here. He has a high value for his total followers. He hasn't played this season. Where is this coming from? Previous deals? Friends in high places?
+
+```{r}
+md %>% filter(Name == "Cameron Edge")
+```
+
+Looking at this data, it's unclear. To answer this question and the Lunsford question, we may need more data. At this point, I'm more inclined to say that there's something wonky going on with On3's algorithms. It would be interesting to go under the hood and see what goes into these valuations in actuality, but for now, this is the best we can get.
+
+## Moving Up in the World
+
+I also want to look at how different schools are able to develop their player's values based on the recruits that they get. This is interesting from a recruiting perspective because recruits want to know which school they can go to and make the most money based on their ranking on recruiting services coming out of high school. I'm going to do some math to convert ratings into stars and then calculate the value for each star a player has.
+
+```{r}
+summary(with_rank$rating)
+```
+
+```{r}
+filled_ratings <- with_rank %>% mutate(stars = (rating-62.75)/7.25)
+summary(filled_ratings$`stars`)
+```
+
+```{r}
+filled_ratings <- filled_ratings %>% mutate(valperstar = Valuation/stars)
+filled_ratings
+```
+
+We're only looking at teams that have more than 60 players in the valuations so that averages aren't skewed. If we plot value per star on the y-axis and average ranking of a recruit on the x-axis, we can see which schools get more value for a star and which schools get better recruits.
+
+```{r}
+detach(package:Hmisc)
+teams <- filled_ratings %>% group_by(`School`, Conference) %>% summarize(avg_vps = mean(valperstar), avg_rating = mean(rating), count=n()) %>% filter(count > 60) %>% arrange(desc(avg_vps))
+fit <- lm(avg_vps ~ avg_rating, data = teams)
+summary(fit)
+teams <- teams %>% ungroup() %>% mutate(predicted = predict(fit), residual = residuals(fit), abs_residual = abs(residual))
+teams %>% arrange(desc(abs_residual))
+
+bigten <- teams %>% filter(Conference == "Big Ten")
+
+ggplot() + 
+  geom_point(data=teams, aes(x=avg_rating, y=avg_vps, colour="Rest of NCAA"), color="gray") +
+  geom_point(data=bigten, aes(x=avg_rating, y=avg_vps, colour="Big Ten"), color="red") +
+  geom_text_repel(
+    data=bigten, 
+    aes(x=avg_rating, y=avg_vps, label=School)
+  ) +
+  geom_smooth(data=teams, aes(x=avg_rating, y=avg_vps), color="black", method="lm") +
+  labs(title="How Much is a Star Worth at Different Schools?", x="Avg. Ranking of Recruits", y="Avg. Value/Star", subtitle="Michigan State one of the best at maximizing players' NIL valuations", caption="Source: On3 | By Jetson Ku")  + theme_gray() + 
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 8), 
+    plot.subtitle = element_text(size=10), 
+    panel.grid.minor = element_blank()
+    ) +
+  scale_colour_manual(values = c("red", "gray"))
+```
+
+So Michigan State has guys that weren't blue chip recruits, but have managed to get valued decently in terms of NIL in college. On the other hand, we have Northwestern, Rutgers, Indiana, and... Maryland. Penn State isn't as great as you might expect though.
