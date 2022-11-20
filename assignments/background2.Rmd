@@ -1,0 +1,67 @@
+---
+title: "background2"
+output: html_document
+date: "2022-11-19"
+---
+My question I want to investigate is how much a draft pick should be valued based on its historical probability of players making the NHL. When teams make trades that involve different rounds of draft picks, is it possible to make a standardized equivalance formula that can help us evaluate them? How many third rounders equal one first rounder?
+```{r, message=FALSE}
+library(tidyverse)
+```
+The draft data is in a .csv.
+```{r, message=FALSE}
+draft_data <- read_csv('../data/nhldraft.csv')
+```
+Let's take a look.
+```{r}
+draft_data
+```
+This data set is pretty impressive. It's scraped from hockey-reference.com, and it has draft picks going back many years, as well as their career statistics. This should be helpful in evaluating how players drafted in different positions go on to do in their careers. The biggest wrinkle in this question is the variance in careers and draft strategies of front offices. Let's see how big our sample size is.
+```{r}
+draft_data %>% distinct(to_year)
+```
+All the way back to the 60's ain't bad. That should give us enough drafts to make a reasonable conclusion about the probabilities of each pick.
+```{r}
+draft_data %>% arrange(to_year)
+```
+Even 1964. One thing I notice is a lot of 20 year olds being drafted in the 60's. Nowadays, you don't see many "overagers" being taken in the draft. Most teams think they have a good idea of what prospect is after 19-20. Since prospects become eligible at 18, if you're undrafted at 20 years old, your chances aren't so good. Maybe that's a recent trend, and this hasn't always been the case. It could be worth investigating.
+
+What about games played. That seems like a simple way to evaluate draft picks. If you play a lot of games and stick around in the league for a while, that adds value to your team. One question that I have is how many games are you afforded as a first overall pick. I'm sure teams will give the prospects they consider "elite" a longer leash than some other guys. It may be hard to determine how many games a prospect earns vs is given, but perhaps we can use points or a regression model to see if first rounders get a larger benefit of the doubt.
+```{r}
+gp <- draft_data %>% group_by(year) %>% summarise(games = sum(games_played))
+gp
+```
+Some NA's. Nice. Let's filter those out.
+```{r}
+gp <- draft_data %>% filter(!is.na(games_played))
+gp <- gp %>% group_by(year) %>% summarise(games = sum(games_played))
+gp
+```
+Which draft has the most career GP total?
+``` {r}
+ggplot() + 
+  geom_bar(
+    data=gp, 
+    width = 0.2,
+    aes(x=reorder(year, `games`),
+        weight=`games`)) + 
+  labs(
+    title="GP/Draft Year", 
+    x="Draft Year", 
+    y="Total Games Played") + 
+  theme_minimal() + 
+  coord_flip()
+```
+Kind of hard to see, but I think that's 2003. That is a pretty legendary draft with some legends all the way through the seven rounds.
+
+Now let's break it down by overall pick.
+```{r}
+gp <- draft_data %>% filter(!is.na(games_played))
+gp <- gp %>% group_by(overall_pick) %>% summarise(games = mean(games_played), count = n())
+gp
+```
+Some interesting things going on here. I have a feeling this will be an interesting scatter plot.
+```{r}
+ggplot() + 
+  geom_point(data=gp, aes(x=overall_pick, y=games))
+```
+And this starts to scratch our itch. A pretty solid relationship between overall pick and average games played. We should keep digging at this, but we do see the safety of being drafted in the first round and the hit or miss value of the later picks.
