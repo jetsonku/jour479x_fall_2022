@@ -1,0 +1,92 @@
+---
+title: "wbb.rmd"
+output: html_document
+date: "2022-11-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(postmastr)
+library(tidyverse)
+```
+
+```{r, message=FALSE}
+rosters23 <- read_csv('https://github.com/dwillis/wbb-rosters/raw/main/rosters_2022-23.csv')
+```
+
+# Things to clean
+* Position abbreviations
+* State abbreviations
+* Drop numerical names
+* Numerical graduation years
+* Standardizing height
+
+# Columns to add
+* Country
+* State
+* Height in inches
+```{r}
+rosters23 <- rosters23 %>% 
+  mutate(hometown_cleaned = str_to_upper(str_replace(hometown, "\\.",""))) %>% 
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.","")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,"/.*","")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,",",", ")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,"-"," ")) %>% 
+  mutate(hometown_cleaned = str_squish(hometown_cleaned))
+
+states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL", "WVA."),
+    output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO", "WV"), locale = "us")
+
+dict <- pm_dictionary(type='state', case = c("title", "upper", "lower"), append = states_non_standard)
+rosters23 <- rosters23 %>% pm_identify(var="hometown_cleaned")
+parsed <- rosters23 %>% 
+  pm_identify(var="hometown_cleaned") %>% 
+  pm_prep(var="hometown_cleaned", type="street") %>% 
+  pm_state_parse(dict)
+cleaned <- left_join(rosters23, parsed, by="pm.uid")
+
+```
+```{r}
+cleaned %>% filter(is.na(pm.state)) %>% select(hometown_cleaned)
+```
+```{r}
+csv <- cleaned %>% select(hometown, pm.state) %>% distinct(hometown, .keep_all = TRUE)
+write_csv(csv, "states.csv")
+```
+
+
+
+```{r}
+rosters23_clean <- rosters23 %>% separate(hometown, c('hometown', 'homestate'), sep=',', extra='merge')
+```
+```{r}
+rosters23_clean <- rosters23_clean %>% mutate(homestate=str_trim(homestate), homestate=str_replace(homestate, '\\.', '')) %>%
+  mutate(homestate = case_when(is.na(abbr2state(homestate)) ~ homestate, TRUE ~ (abbr2state(homestate))))
+
+```
+
+
+```{r}
+rosters23_clean %>% group_by(position) %>% summarise(count = n()) %>% arrange(desc(count))
+
+```
+```{r}
+rosters23_clean <- rosters23 %>% mutate(position = na_if(position, "N/A"))
+rosters23_clean <- rosters23_clean %>% separate(position, c('primary_position', 'secondary_position'), sep='/', extra='merge')
+rosters23_clean <- rosters23_clean %>% mutate(primary_position = case_when((primary_position == "G") ~ "Guard", (primary_position == "C") ~ "Center", (primary_position == "F") ~ "Forward", TRUE ~ primary_position)) 
+rosters23_clean <- rosters23_clean %>% mutate(secondary_position = case_when((secondary_position == "G") ~ "Guard", (secondary_position == "C") ~ "Center", (secondary_position == "F") ~ "Forward", TRUE ~ secondary_position))
+rosters23_clean <- rosters23_clean %>% mutate(primary_position = case_when((primary_position == "G") ~ "Guard", (primary_position == "C") ~ "Center", (primary_position == "F") ~ "Forward", TRUE ~ primary_position))
+rosters23_clean <- rosters23_clean %>% filter(!grepl("'", rosters23_clean$primary_position))
+rosters23_clean <- rosters23_clean %>% filter(!grepl("5", rosters23_clean$primary_position))
+rosters23_clean <- rosters23_clean %>% filter(!grepl("6", rosters23_clean$primary_position))
+rosters23_clean <- rosters23_clean %>% filter(!grepl("'", rosters23_clean$secondary_position))
+rosters23_clean <- rosters23_clean %>% filter(!grepl("5", rosters23_clean$secondary_position))
+rosters23_clean <- rosters23_clean %>% filter(!grepl("6", rosters23_clean$secondary_position))
+rosters23_clean %>% group_by(primary_position) %>% summarise(count = n()) %>% arrange(desc(count))
+rosters23_clean %>% group_by(secondary_position) %>% summarise(count = n()) %>% arrange(desc(count))
+```
+
