@@ -16,6 +16,8 @@ library(tidyverse)
 
 ```{r, message=FALSE}
 rosters23 <- read_csv('https://github.com/dwillis/wbb-rosters/raw/main/rosters_2022-23.csv')
+rosters22 <- read_csv('https://github.com/dwillis/wbb-rosters/raw/main/rosters_2021-22.csv')
+
 ```
 
 # Things to clean
@@ -30,24 +32,25 @@ rosters23 <- read_csv('https://github.com/dwillis/wbb-rosters/raw/main/rosters_2
 * State
 * Height in inches
 ```{r}
-rosters23 <- rosters23 %>% 
+rosters22 <- rosters22 %>% 
   mutate(hometown_cleaned = str_to_upper(str_replace(hometown, "\\.",""))) %>% 
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.","")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"/.*","")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.$","")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,",",", ")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"-"," ")) %>% 
   mutate(hometown_cleaned = str_squish(hometown_cleaned))
 
-states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL", "WVA."),
-    output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO", "WV"), locale = "us")
+states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL"),
+    output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO"), locale = "us")
 
 dict <- pm_dictionary(type='state', case = c("title", "upper", "lower"), append = states_non_standard)
-rosters23 <- rosters23 %>% pm_identify(var="hometown_cleaned")
-parsed <- rosters23 %>% 
+rosters22 <- rosters22 %>% pm_identify(var="hometown_cleaned")
+parsed <- rosters22 %>% 
   pm_identify(var="hometown_cleaned") %>% 
   pm_prep(var="hometown_cleaned", type="street") %>% 
   pm_state_parse(dict)
-cleaned <- left_join(rosters23, parsed, by="pm.uid")
+cleaned <- left_join(rosters22, parsed, by="pm.uid")
 
 ```
 ```{r}
