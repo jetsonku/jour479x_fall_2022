@@ -125,14 +125,17 @@ wbb_rosters23 <- wbb_rosters23 %>%
 wbb_rosters23 <- wbb_rosters23 %>% 
   mutate(hometown_cleaned = str_to_upper(str_replace(hometown, "\\.",""))) %>% 
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.","")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,", N C"," NC")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,", HAWAI‘I",", HAWAII")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,", HAWAI'I",", HAWAII")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"/.*","")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.$","")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,",",", ")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"-"," ")) %>% 
   mutate(hometown_cleaned = str_squish(hometown_cleaned))
 
-states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL"),
-    output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO"), locale = "us")
+states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL", "KEN", "MARY"),
+    output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO", "KY", "MD"), locale = "us")
 
 dict <- pm_dictionary(type='state', case = c("title", "upper", "lower"), append = states_non_standard)
 wbb_rosters23 <- wbb_rosters23 %>% pm_identify(var="hometown_cleaned")
@@ -164,5 +167,13 @@ wbb_rosters23 <- wbb_rosters23 %>% mutate(temp = sapply(strsplit(hometown_cleane
 nations_df$Country <- toupper(nations_df$Country)
 wbb_rosters23 <- left_join(wbb_rosters23, nations_df, by=c('temp'='Country'))
 wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(!is.na(Worldrank) ~ temp, country == "USA" ~ "USA"))
+
 wbb_rosters23 <- subset(wbb_rosters23, select = -c(temp,Worldrank,Zonerank,IOC,`Current points`, `+/- Rank *`) )
+```
+
+
+
+```{r}
+wbb_rosters23 %>% filter(is.na(country))
+
 ```
