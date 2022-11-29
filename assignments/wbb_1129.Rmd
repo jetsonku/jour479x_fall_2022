@@ -164,16 +164,34 @@ wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(!is.na(pm.state) ~ "U
 
 
 wbb_rosters23 <- wbb_rosters23 %>% mutate(temp = sapply(strsplit(hometown_cleaned, ", ", fixed=TRUE), tail, 1))
-nations_df$Country <- toupper(nations_df$Country)
-wbb_rosters23 <- left_join(wbb_rosters23, nations_df, by=c('temp'='Country'))
-wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(!is.na(Worldrank) ~ temp, country == "USA" ~ "USA"))
 
-wbb_rosters23 <- subset(wbb_rosters23, select = -c(temp,Worldrank,Zonerank,IOC,`Current points`, `+/- Rank *`) )
+wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(temp %in% c('BC', 'QUEBEC', 'BRITISH COLUMBIA', 'ALBERTA', 'VICTORIA', 'ONTARIO') ~ "CANADA", TRUE ~ country))
+
+nations_df$Country <- toupper(nations_df$Country)
+
+
+
+added_nations <- data.frame(Worldrank=c(0, 0, 0, 0),
+                  Country=c('ENGLAND', 'RUSSIA', 'SCOTLAND', 'NORTHERN IRELAND'),
+                  Zonerank=c(0, 0, 0, 0),
+                  IOC=c('', '', '', ''),
+                  "Current points"=c(0, 0, 0, 0),
+                  "+/- Rank *"=c(0, 0, 0, 0),
+                  check.names = FALSE)
+nations_df <- rbind(nations_df, added_nations)
+
+
+wbb_rosters23 <- left_join(wbb_rosters23, nations_df, by=c('temp'='Country'))
+```
+```{r}
+wbb_rosters23 <- mutate(wbb_rosters23, country = case_when((!is.na(Worldrank) & is.na(country)) ~ temp, is.na(Worldrank) &  !is.na(country) ~ country, country == "USA" ~ "USA"))
+
+wbb_rosters23 <- subset(wbb_rosters23, select = -c(Worldrank,Zonerank,IOC,`Current points`, `+/- Rank *`) )
 ```
 
 
 
 ```{r}
-wbb_rosters23 %>% filter(is.na(country))
+wbb_rosters23 %>% filter(is.na(country)) %>% group_by(temp) %>% summarise(count=n()) %>% arrange(desc(count))
 
 ```
