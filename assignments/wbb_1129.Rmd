@@ -1,13 +1,8 @@
----
-title: "wbb_1129"
-output: html_document
-date: "2022-11-29"
----
-
 ```{r}
 library(tidyverse)
 library(usdata)
 library(postmastr)
+library(rvest)
 ```
 
 ```{r}
@@ -17,51 +12,57 @@ wbb_rosters23 <- read_csv("https://github.com/dwillis/wbb-rosters/raw/main/roste
 # Teams That Have Roster Data
 
 ```{r}
-teams <- read_csv("../data/teams.csv")
+teams <- read_csv("https://raw.githubusercontent.com/dwillis/jour479x_fall_2022/main/data/teams.csv") %>% select(-url, -twitter, -stats_name, -private)
+
 roster_teams <- wbb_rosters23 %>% distinct(ncaa_id) %>% mutate(has_roster = 1)
+
 teams <- teams %>% 
   left_join(roster_teams) %>% mutate(roster = has_roster)
+
 teams_without_rosters <- teams %>% 
   filter(is.na(roster))
+
+wbb_rosters23 <- wbb_rosters23 %>% 
+  left_join(teams, by=c("ncaa_id", "team")) 
 ```
-
-
-# Things to Clean
-
-* Drop where Name is NA
-* Standardize Positions
-* Standardizing State (would need to extract)
-* Standardizing Year (dealing with redshirts & also grad students)
-* Standardizing Height (5'10" or 5-10)
-
-# Columns to Add
-
-* State
-* Country
-* Height in inches
-
 # Height Cleaning
 
-* Still need to add a single column with total inches using feet and inches.
-
 ```{r}
-wbb_rosters23 <- wbb_rosters23 %>% mutate(
-  height = str_replace(height, '-', "'")
-)
-wbb_rosters23 <- wbb_rosters23 %>% separate(col=height, into=c("height_ft", "height_in"), sep="'", extra="merge")
-wbb_rosters23 <- wbb_rosters23 %>% mutate(height_in = str_replace(height_in, '"', " "))
-wbb_rosters23$height <- paste(wbb_rosters23$height_ft, "-", wbb_rosters23$height_in)
+wbb_rosters23 <- wbb_rosters23 %>% 
+  mutate(height_clean = str_replace(height, "'", '-')) %>% 
+  mutate(height_clean = str_replace(height_clean, "’", '-')) %>% 
+  mutate(height_clean = str_replace(height_clean, "''", '')) %>% 
+  mutate(height_clean = str_replace(height_clean, '"', '')) %>%
+  separate(height_clean, c('height_ft', 'height_in'), sep="-", extra="merge") %>% 
+  mutate(height_ft = as.numeric(height_ft), height_in = as.numeric(height_in)) %>%
+  mutate(total_inches = (height_ft*12)+height_in)
+
+
+wbb_rosters23 %>% 
+  group_by(total_inches) %>% 
+  summarise(
+    total = n()
+  )
 ```
 
+We've got 98 with NA heights.
 
+```{r}
+wbb_rosters23 %>% filter(is.na(total_inches)) %>% group_by(team) %>% summarize(count = n()) %>% arrange(desc(count))
+```
 # Positions Cleaning
 
 ```{r}
-positions_cleaned <- read_csv("../data/wbb_positions.csv") %>%
+
+positions_cleaned <- read_csv("https://raw.githubusercontent.com/dwillis/jour479x_fall_2022/main/data/wbb_positions.csv") %>%
   select(-count)
+
 wbb_rosters23 <- wbb_rosters23 %>% inner_join(positions_cleaned, by = "position") 
+
 wbb_rosters23 %>% distinct(position_clean)
+
 ## Primary/Secondary positions based on order of position_clean
+
 wbb_rosters23 <- wbb_rosters23 %>% mutate(position_full = position_clean)
 wbb_rosters23 <- wbb_rosters23 %>% mutate(position_clean = na_if(position_clean, "N/A"))
 wbb_rosters23 <- wbb_rosters23 %>% separate(position_clean, c('primary_position', 'secondary_position'), sep='/', extra='merge')
@@ -82,10 +83,13 @@ wbb_rosters23 %>% group_by(secondary_position) %>% summarise(count = n()) %>% ar
 # Years Cleaning
 
 ```{r}
-years_cleaned <- read_csv("../data/yearscleaned.csv")
+years_cleaned <- read_csv("https://raw.githubusercontent.com/dwillis/jour479x_fall_2022/main/data/yearscleaned.csv")
+
 wbb_rosters23 <- inner_join(wbb_rosters23, years_cleaned) %>% rename(year_clean = `year-clean`)
+
 wbb_rosters23 <- wbb_rosters23 %>% 
   select(-count)
+
 wbb_rosters23 %>% distinct(year_clean)
 ```
 
@@ -107,53 +111,82 @@ extras_wbb <- wbb_rosters23 %>%
   mutate(hs_clean = "")%>%
   mutate(type = "no hs")
 all_wbb <- bind_rows(hs_wbb, extras_wbb)
+
 previous_school_is_hs=as.list(hs_wbb$previous_school)
+
 # update based on list membership
+
 wbb_rosters23 <- wbb_rosters23 %>%
   mutate(hs_clean = case_when(
     is.na(high_school) & previous_school %in% previous_school_is_hs ~ previous_school,
     TRUE ~ high_school)
   )
+
 # where previous school == hs_clean, replace previous_school with NA
+
 wbb_rosters23 <- wbb_rosters23 %>% 
   mutate(previous_school = ifelse(previous_school == hs_clean, NA, previous_school))
 ```
 
 # Hometown/Homestate Cleaning
 
+Postmastr is doing most of the heavy lifting here. All I'm doing is adding some edge case abbreviations so that the dictionary we have covers any weird ways of representing states. Then we're cleaning the hometown and using postmastr to join our dataframe with the abbreviation dictionary so we get a new column with the state that it recognized in the string.
+
+--- JETSON
 ```{r}
 wbb_rosters23 <- wbb_rosters23 %>% 
   mutate(hometown_cleaned = str_to_upper(str_replace(hometown, "\\.",""))) %>% 
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.","")) %>%
-  mutate(hometown_cleaned = str_replace(hometown_cleaned,", N C"," NC")) %>%
-  mutate(hometown_cleaned = str_replace(hometown_cleaned,", HAWAI‘I",", HAWAII")) %>%
-  mutate(hometown_cleaned = str_replace(hometown_cleaned,", HAWAI'I",", HAWAII")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"/.*","")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,"\\.$","")) %>%
   mutate(hometown_cleaned = str_replace(hometown_cleaned,",",", ")) %>%
-  mutate(hometown_cleaned = str_replace(hometown_cleaned,"-"," ")) %>% 
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,"-"," ")) %>%
+  mutate(hometown_cleaned = str_replace(hometown_cleaned,"'","")) %>% 
+
   mutate(hometown_cleaned = str_squish(hometown_cleaned))
 
-states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL", "KEN", "MARY"),
-    output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO", "KY", "MD"), locale = "us")
+states_non_standard <- pm_append(type = "state", input = c("SD.", "MASS", "CALIF", "MICH", "NEB", "IND", "MINN", "ORE", "OHIO", "FLA", "MISS", "TENN", "ARIZ", "KAN", "ALA", "OKLA", "WIS", "ILL", " WASH", "ARK", "COLO", "NEV", "CONN", "WISC", "WVA", "DEL", "WYO", "CALI", "LOUIS", "VIRG", "MONT", "PENN", "TEX", "KANS", "NEBR", "IDA", "COL"), output = c("SD", "MA", "CA", "MI", "NE", "IN", "MN", "OR", "OH", "FL", "MS", "TN", "AZ", "KS", "AL", "OK", "WI", "IL", "WA", "AR", "CO", "NV", "CT", "WI", "WV", "DE", "WY", "CA", "LA", "VA", "MT", "PA", "TX", "KS", "NE", "ID", "CO"), locale = "us")
 
 dict <- pm_dictionary(type='state', case = c("title", "upper", "lower"), append = states_non_standard)
+
 wbb_rosters23 <- wbb_rosters23 %>% pm_identify(var="hometown_cleaned")
+
 parsed <- wbb_rosters23 %>% 
   pm_identify(var="hometown_cleaned") %>% 
   pm_prep(var="hometown_cleaned", type="street") %>% 
   pm_state_parse(dict)
+
 wbb_rosters23 <- left_join(wbb_rosters23, parsed, by="pm.uid")
+
+wbb_rosters23 %>%
+  filter(is.na(hometown_cleaned))
+
+wbb_rosters23 <- wbb_rosters23 %>% separate(hometown, c('hometown', 'homestate'), sep=',', extra='merge')
+
+wbb_rosters23 <- wbb_rosters23 %>% mutate(homestate=str_trim(homestate), homestate=str_replace(homestate, '\\.', '')) %>%
+  mutate(homestate = case_when(is.na(abbr2state(homestate)) ~ homestate, TRUE ~ (abbr2state(homestate))))
+
 ```
 
 # Foreign Nation Cleaning
 
 Take the list of FIBA nations (https://www.fiba.basketball/rankingwomen) and make a list or dataframe of them, then compare that to the values in the `homestate` column generated above and populate a new column for country.
 
-```{r}
-library(rvest)
-library(tidyverse)
+I'm using the above approach to scrape the FIBA nations and put them in a dataframe. My logic is then as following:
+- Make a new column for country
+- Populate this column with USA when there is a state identified by postmaster
+- Then we are splitting the hometown_cleaned column by a ", " and taking the last item that was split by that function. This should give us either a state or a country, since country is listed as the last item in homewtown cleaned in the format "[city], [state], [country]", or "[city], [country]". Once we have this item we make it its own column "temp"
+- There are a few popular cases where a player's state is listed as a province in Canada. Since there are so many of these occurrences, we will just set the country to Canada when this happens, similar to the U.S. logic
+- Make the country uppercase to standardize
+- Add popular nations that aren't in FIBA to the FIBA dataframe
+- Use this FIBA dataframe as a list of countries to join on "temp"
+- When the "temp" column had a successful join with the FIBA countries, we know that it's a recognized country. Then we will take this "temp" value and put it in "country. Otherwise we'll keep the current country value (Canada, USA)
+- Then we'll drop the columns we don't need anymore
 
+--- JETSON
+
+
+```{r}
 fibaurl <- "https://www.fiba.basketball/rankingwomen"
 nations <- fibaurl %>%
   read_html() %>%
@@ -163,9 +196,18 @@ nations_df <- nations[[1]]
 wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(!is.na(pm.state) ~ "USA"))
 
 
-wbb_rosters23 <- wbb_rosters23 %>% mutate(temp = sapply(strsplit(hometown_cleaned, ", ", fixed=TRUE), tail, 1))
+wbb_rosters23 <- wbb_rosters23 %>% mutate(temp = sapply(strsplit(wbb_rosters23$hometown_cleaned, ", ", fixed=TRUE), tail, 1))
 
-wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(temp %in% c('BC', 'QUEBEC', 'BRITISH COLUMBIA', 'ALBERTA', 'VICTORIA', 'ONTARIO') ~ "CANADA", TRUE ~ country))
+wbb_rosters23 <- mutate(wbb_rosters23, country = case_when(
+  temp %in% c('BC', 'QUEBEC', 'BRITISH COLUMBIA', 'ALBERTA', 'ONTARIO', 'NOVA SCOTIA', 'ONT') ~ "CANADA", 
+  temp == "THE NETHERLANDS" ~ "NETHERLANDS", 
+  temp == "SOUTH AUSTRALIA" ~ "AUSTRALIA",  
+  temp == "WESTERN AUSTRALIA" ~ "AUSTRALIA",
+  temp == "BOSNIA" ~ "BOSNIA AND HERZEGOVINA",
+  temp == "MACEDONIA" ~ "MACEDONIA",
+  temp == "TAIWAN" ~ "TAIWAN",
+  temp == "PAPUA NEW GUINEA" ~ "PAPUA NEW GUINEA",
+  TRUE ~ country))
 
 nations_df$Country <- toupper(nations_df$Country)
 
@@ -182,16 +224,16 @@ nations_df <- rbind(nations_df, added_nations)
 
 
 wbb_rosters23 <- left_join(wbb_rosters23, nations_df, by=c('temp'='Country'))
-```
-```{r}
+
 wbb_rosters23 <- mutate(wbb_rosters23, country = case_when((!is.na(Worldrank) & is.na(country)) ~ temp, is.na(Worldrank) &  !is.na(country) ~ country, country == "USA" ~ "USA"))
 
 wbb_rosters23 <- subset(wbb_rosters23, select = -c(Worldrank,Zonerank,IOC,`Current points`, `+/- Rank *`) )
+
+wbb_rosters23 %>% filter(is.na(country))
 ```
-
-
-
 ```{r}
-wbb_rosters23 %>% filter(is.na(country)) %>% group_by(temp) %>% summarise(count=n()) %>% arrange(desc(count))
+wbb_rosters23 %>% group_by(hometown,homestate, country) %>% summarise(count=n()) %>% arrange(desc(count))
+wbb_rosters23 <- subset(wbb_rosters23, select = -c(temp) )
 
 ```
+
