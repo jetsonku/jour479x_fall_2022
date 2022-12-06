@@ -1,0 +1,420 @@
+---
+title: "final_presentation"
+author: "Jetson Ku"
+date: "2022-12-05"
+output: html_document
+---
+
+# What makes a fair trade for a first overall pick? Analysis of NHL Entry Draft Pick Values in Trade
+
+Based on the position a player is drafted in, we can forecast their probability of making the NHL without knowing anything else about them, as long as we have multiple years of draft data. Thankfully this is something that we do have access to. I found a data file on [kaggle](kaggle.com) where it has draft selections for the past 60-ish years along with their career statistics in the NHL.
+
+My main goal is to help analyze situations when teams make trades that involve different rounds of draft picks. Is it possible to make a standardized equivalence formula that can help us evaluate them? How many third rounders equal one first rounder?
+
+```{r, message=FALSE}
+library(tidyverse)
+library(gt)
+```
+
+The draft data is in a .csv that I've uploaded to GitHub.
+
+```{r, message=FALSE}
+draft_data <- read_csv('https://raw.githubusercontent.com/jetsonku/jour479x_fall_2022/main/data/nhldraft.csv')
+```
+
+Let's take a look. I want to count the \<NA\> in some of the key columns I want to use. When I was first looking through the spreadsheet I saw some missing values.
+
+```{r}
+draft_data
+data_summary <- draft_data %>% group_by(year) %>% 
+  summarise(
+    count=n(),
+    na_overall = sum(is.na(overall_pick)), 
+    na_nationality = sum(is.na(nationality)), 
+    na_amateur = sum(is.na(amateur_team)),
+    na_age = sum(is.na(age)),
+    na_position = sum(is.na(position)),
+
+    )
+data_summary
+```
+
+So the data is really pretty complete going back until 2000. If we go back further, there are a lot of ages missing. And in 1979 it seems that there are less than 200 selections. We know that the number of rounds and selections has changed over time as teams enter and exit the league (Seattle, Vegas), or when the rules are changed (less rounds), or even when picks are forfeited (Arizona).
+
+The age counts are a bit unfortunate, as we can't do any real analysis on the trends in age selections over time, but it can still tell us a little. As our understanding of players' developments has changed, front offices have started to pick "overaged" players (over 18) less and less. The idea is that players that are 19-20 have been draft-eligible for a year already, and if they weren't picked already, they aren't worth as much as a more promising and moldable prospect.
+
+Here we're looking at the average age of draft picks over time, so the left side is older drafts and the right side is most recent drafts.
+
+```{r}
+by_year <- draft_data %>% filter(!is.na(age))
+by_age <- by_year %>% group_by(year) %>% summarise(avg_age = mean(age))
+ggplot() + 
+  geom_line(data=by_age, aes(x=year, y=avg_age)) +
+  labs(x="Year", y="Average Age of Draft Pick", title="Average Age of NHL Draft Pick has Decreased")
+```
+
+This looks about right, even if we have lots of missing data for most of the graph. It is interesting that 16 year olds used to be eligible to be drafted directly into the NHL. I'm not going to read too much into the spikes and valleys due to the low samples sizes and am simply going to conclude that the average age of a drafted player has decreased to under 19.
+
+The next trends I want to take a look at are by country. As an American myself, I like to believe in the narrative that USA Hockey has done a good job of growing the game in areas that haven't traditionally been known as hockey markets. Before I started looking at this data, I was under the assumption that this meant American draft picks were on the rise - a higher percentage of total picks and higher overall picks. In order to get at this, I'm going to group the picks by year and nationality, and then count the number of each nationality in each year. Once we have these counts, I'm pivoting the table so each country has a column where each row is a draft year and the values are the counts.
+
+For the sake of readability, I'm only looking at this as Canada, the US, and everyone else. Although this might seem like a naive approach, it ends up making the output simpler and isn't too ridiculous given North America's dominance in the sport.
+
+```{r, message=FALSE}
+by_country <- draft_data %>% group_by(year, nationality) %>% summarise(count = n())
+country_wide <- by_country %>% pivot_wider(names_from = nationality, values_from = count)
+country_wide[is.na(country_wide)] <- 0
+country_wide$total <- rowSums( country_wide[,2:47] )
+top5 <- country_wide %>% select(CA, US, SE, FI, RU, total) %>% filter(total > 200)
+top5 <- top5 %>% mutate(
+  CApct= CA/total, 
+  USpct= US/total, 
+  OTHERpct= 1-(CApct+USpct)
+  ) %>% filter(total > 100)
+ggplot() + 
+  geom_smooth(data=top5, colour="#D80621",  fill='#8E9090', aes(x=year, y=CApct, colour='CA'), alpha= 0.1) +
+  geom_smooth(data=top5, colour="#0A3161", fill='#B31942', aes(x=year, y=USpct, colour='US'), alpha= 0.1, ) +
+  geom_smooth(data=top5 ,aes(x=year, y=OTHERpct, colour='Other'), alpha= 0.1) +
+  labs(x = "Draft Year", y="Percent of Draftees", title="Canada's Downfall?", subtitle="As Canada loses its stronghold on the NHL Entry Draft, European nations start to take over") +
+    theme(legend.position = c(0, 1),legend.justification = c(0, 1)) + scale_colour_manual(name = "Legend", 
+                      values = c("Canada" = "#D80621", 
+                                 "US" = "#0A3161",
+                                 "Other" = "#006939"))
+
+```
+
+```{r}
+draft_data <- separate(data = draft_data, col = amateur_team, into = c('amateur_team', 'league'), sep = "\\(")
+draft_data <- draft_data %>% 
+  mutate(league = str_replace(league, "\\)", ""))
+picks_by_amateur_team <- draft_data %>% group_by(team, amateur_team) %>% summarise(count=n()) %>% arrange(desc(count))
+picks_by_amateur_team
+picks_by_league <- draft_data %>% group_by(team, league) %>% summarise(count=n()) %>% arrange(desc(count))
+picks_by_league
+picks_by_league %>% filter(grepl("Sweden", league, fixed = TRUE)) %>% group_by(team) %>% summarise(total = sum(count)) %>% arrange(desc(total))
+picks_by_league %>% filter(grepl("Russia", league, fixed = TRUE)) %>% group_by(team) %>% summarise(total = sum(count)) %>% arrange(desc(total))
+picks_by_league %>% filter(grepl("Finland", league, fixed = TRUE)) %>% group_by(team) %>% summarise(total = sum(count)) %>% arrange(desc(total))
+```
+
+```{r}
+draft_data <- draft_data %>% mutate(games_played = ifelse(is.na(games_played), 0, games_played)) %>% mutate(point_shares = ifelse(is.na(point_shares), 0, point_shares)) %>% mutate(pspg = ifelse(is.na(points), 0, point_shares/games_played))
+gp <- draft_data %>% group_by(overall_pick) %>% summarise(mean_games = mean(games_played), mean_point_shares = mean(point_shares), mean_pspg = mean(pspg),count = n())
+gp <- gp %>% filter(count > 30)
+
+ggplot() + 
+  geom_point(data=gp, aes(x=overall_pick, y=mean_games))
+```
+
+```{r}
+ggplot(gp, aes(x=overall_pick, y=mean_games)) + 
+  geom_point(col = 'black') + 
+  stat_smooth(method="lm", formula=y ~ log(x),colour="black")
+ggplot(gp, aes(x=overall_pick, y=mean_point_shares)) + 
+  geom_point(col = 'red') + 
+  stat_smooth(method="lm", formula=y ~ log(x),colour="red")
+ggplot(gp, aes(x=overall_pick, y=mean_pspg)) + 
+  geom_point(col = 'blue') + 
+  stat_smooth(method="lm", formula=y ~ log(x),colour="blue")
+```
+
+```{r}
+fit <- lm(mean_games ~ log(overall_pick), data=gp)
+pred_games <- fit %>% predict(draft_data)
+draft_data <- draft_data %>% mutate(xgames = pred_games, residualgames= games_played-xgames)
+
+fit <- lm(mean_point_shares ~ log(overall_pick), data=gp)
+pred_point_shares <- fit %>% predict(draft_data)
+draft_data <- draft_data %>% mutate(xpointshares = pred_point_shares, residualpointshares= point_shares-xpointshares)
+
+fit <- lm(mean_pspg ~ log(overall_pick), data=gp)
+pred_pspg <- fit %>% predict(draft_data)
+draft_data <- draft_data %>% mutate(xpspg = pred_pspg, residualpspg= pspg-xpspg)
+```
+
+```{r}
+top <- draft_data %>% 
+  arrange(desc(residualpspg)) %>%
+  filter(position != 'G', games_played > 82) %>%
+  select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
+
+
+head(top, 20) %>%
+  gt() %>%
+  cols_label(
+    year = "Year",
+    overall_pick = "Overall Pick", 
+    team = "Draft Team", 
+    player = "Name", 
+    to_year = "Last Year Played", 
+    amateur_team = "Amateur Team", 
+    pspg = "Career NHL Point Shares per Game", 
+    xpspg = "Expected Career NHL Point Shares per Game", 
+    residualpspg = "Difference"
+   
+  ) %>%
+  tab_header(
+    title = "Is Kirill Kaprizov the Greatest NHL Draft Gem of All Time?",
+    subtitle = "Based on his draft position and impact so far, he's on track"
+  ) %>%  
+  tab_source_note(
+    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 82 Career GP to qualify")
+  ) %>%
+    tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% 
+  tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping()
+```
+
+```{r}
+library(gt)
+bottom <- draft_data %>% 
+  arrange((residualpspg)) %>%
+  filter(position != 'G', games_played > 82) %>%
+  select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
+
+head(bottom, 20) %>% 
+  gt() %>%
+  cols_label(
+    year = "Year",
+    overall_pick = "Overall Pick", 
+    team = "Draft Team", 
+    player = "Name", 
+    to_year = "Last Year Played", 
+    amateur_team = "Amateur Team", 
+    pspg = "Career NHL Point Shares per Game", 
+    xpspg = "Expected Career NHL Point Shares per Game", 
+    residualpspg = "Difference"
+   
+  ) %>%
+  tab_header(
+    title = "Biggest Busts",
+    subtitle = "Skaters Only"
+  ) %>%  
+  tab_source_note(
+    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 82 Career GP to qualify")
+  ) %>%
+    tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% 
+  tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping()
+```
+
+```{r}
+library(gt)
+bottom <- draft_data %>% 
+  arrange((residualpspg)) %>%
+  filter(position != 'G', games_played > 41, year > 2009) %>%
+  select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
+
+head(bottom, 20) %>% 
+  gt() %>%
+  cols_label(
+    year = "Year",
+    overall_pick = "Overall Pick", 
+    team = "Draft Team", 
+    player = "Name", 
+    to_year = "Last Year Played", 
+    amateur_team = "Amateur Team", 
+    pspg = "Career NHL Point Shares per Game", 
+    xpspg = "Expected Career NHL Point Shares per Game", 
+    residualpspg = "Difference"
+   
+  ) %>%
+  tab_header(
+    title = "Biggest Busts Since 2010",
+    subtitle = "Skaters Only"
+  ) %>%  
+  tab_source_note(
+    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 41 Career GP to qualify")
+  ) %>%
+    tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% 
+  tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping()
+```
+
+```{r}
+library(gt)
+bottom <- draft_data %>% 
+  arrange(desc(residualpspg)) %>%
+  filter(position == 'G', games_played > 41) %>%
+  select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
+
+head(bottom, 20) %>% 
+  gt() %>%
+  cols_label(
+    year = "Year",
+    overall_pick = "Overall Pick", 
+    team = "Draft Team", 
+    player = "Name", 
+    to_year = "Last Year Played", 
+    amateur_team = "Amateur Team", 
+    pspg = "Career NHL Point Shares per Game", 
+    xpspg = "Expected Career NHL Point Shares per Game", 
+    residualpspg = "Difference"
+   
+  ) %>%
+  tab_header(
+    title = "Biggest Gems",
+    subtitle = "Goalies Only"
+  ) %>%  
+  tab_source_note(
+    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 41 Career GP to qualify")
+  ) %>%
+    tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% 
+  tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping()
+```
+
+```{r}
+library(gt)
+top <- draft_data %>% 
+  arrange(desc(residualpspg)) %>%
+  filter(position != 'G', games_played > 41, year > 2017) %>%
+  select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
+
+head(top, 20) %>% 
+  gt() %>%
+  cols_label(
+    year = "Year",
+    overall_pick = "Overall Pick", 
+    team = "Draft Team", 
+    player = "Name", 
+    to_year = "Last Year Played", 
+    amateur_team = "Amateur Team", 
+    pspg = "Career NHL Point Shares per Game", 
+    xpspg = "Expected Career NHL Point Shares per Game", 
+    residualpspg = "Difference"
+   
+  ) %>%
+  tab_header(
+    title = "Biggest Gems Since 2018",
+    subtitle = "Skaters Only"
+  ) %>%  
+  tab_source_note(
+    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 41 Career GP to qualify")
+  ) %>%
+    tab_style(
+    style = cell_text(color = "black", weight = "bold", align = "left"),
+    locations = cells_title("title")
+  ) %>% 
+  tab_style(
+    style = cell_text(color = "black", align = "left"),
+    locations = cells_title("subtitle")
+  ) %>%
+  tab_style(
+     locations = cells_column_labels(columns = everything()),
+     style = list(
+       cell_borders(sides = "bottom", weight = px(3)),
+       cell_text(weight = "bold", size=12)
+     )
+   ) %>%
+  opt_row_striping()
+```
+
+```{r}
+draft_data <- draft_data %>% mutate(is_nhler = (games_played > 199))
+by_overall <- draft_data %>% group_by(overall_pick) %>% summarise(count=n(), nhlers=sum(is_nhler))
+by_overall <- by_overall %>% mutate(probability = 100*nhlers/count)
+
+ggplot(by_overall, aes(x=overall_pick, y=probability)) + 
+  geom_point(col = 'blue') + 
+  stat_smooth(method="lm", formula=y ~ log(x),colour="blue")
+
+fit <- lm(probability ~ log(overall_pick), data=by_overall)
+pred_prob <- fit %>% predict(by_overall)
+by_overall <- by_overall %>% mutate(xprobability = pred_prob)
+```
+
+## Hindsight is 20/20
+
+### 2020 - Calgary trades 19th overall pick to Rangers for 22nd & 72nd overall picks; Calgary trades 22nd overall pick to Washington for 24th & 80th overall picks
+
+Calgary gets: [24th, 72nd, 80th picks]{style="color: green;"} = 39.543724+22.742897+21.131643 = 0.8341826 eNHLers
+
+Calgary gives: [19th]{style="color: red;"} = 43.116342 = 0.43116342 eNHLers
+
+Rangers get: [19th]{style="color: green;"} = 43.116342 = 0.43116342 eNHLers
+
+Rangers give: [22nd, 72nd]{style="color: red;"} = 40.874369+22.742897 = 0.6361727 eNHLers
+
+Washington gets: [22nd]{style="color: green;"} = 40.874369 = 0.40874369 eNHLers
+
+Washington gives: [24th, 80th]{style="color: red;"} = 39.543724+21.131643 = 0.6067537 eNHLers
+
+Calgary added 0.4030192 expected NHLers to their franchise assets.
+
+Rangers took 0.2050093 expected NHLers out of their franchise assets.
+
+Washington took 0.19801 expected NHLers out of their franchise assets.
+
+### 2016 - Washington trades 26th overall pick to St. Louis for 28th & 87th overall picks
+
+St. Louis gets: [26th]{style="color: green;"} = 38.319649 = 0.38319649 eNHLers
+
+St. Louis gives: [28th, 87th]{style="color: red;"} = 37.186332+19.848862 = 0.5703519 eNHLers
+
+Washington gets: [28th, 87th]{style="color: green;"} = 37.186332+19.848862 = 0.5703519 eNHLers
+
+Washington gives: [26th]{style="color: red;"} = 38.319649 = 0.38319649 eNHLers
+
+St. Louis took 0.1871554 expected NHLers out of their franchise assets.
+
+Washington added 0.1871554 expected NHLers to their franchise assets.
+
+```{r}
+picks_by_amateur_team <- draft_data %>% group_by(team, amateur_team) %>% summarise(count=n()) %>% arrange(desc(count))
+picks_by_amateur_team
+```
+
+```{r}
+
+```
