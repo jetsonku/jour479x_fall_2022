@@ -11,7 +11,7 @@ Based on the position a player is drafted in, we can forecast their probability 
 
 My main goal is to help analyze situations when teams make trades that involve different rounds of draft picks. Is it possible to make a standardized equivalence formula that can help us evaluate them? How many third rounders equal one first rounder?
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(gt)
 ```
@@ -21,6 +21,8 @@ The draft data is in a .csv that I've uploaded to GitHub.
 ```{r, message=FALSE}
 draft_data <- read_csv('https://raw.githubusercontent.com/jetsonku/jour479x_fall_2022/main/data/nhldraft.csv')
 ```
+
+## Exploration
 
 Let's take a look. I want to count the \<NA\> in some of the key columns I want to use. When I was first looking through the spreadsheet I saw some missing values.
 
@@ -34,7 +36,6 @@ data_summary <- draft_data %>% group_by(year) %>%
     na_amateur = sum(is.na(amateur_team)),
     na_age = sum(is.na(age)),
     na_position = sum(is.na(position)),
-
     )
 data_summary
 ```
@@ -74,15 +75,17 @@ ggplot() +
   geom_smooth(data=top5, colour="#D80621",  fill='#8E9090', aes(x=year, y=CApct, colour='CA'), alpha= 0.1) +
   geom_smooth(data=top5, colour="#0A3161", fill='#B31942', aes(x=year, y=USpct, colour='US'), alpha= 0.1, ) +
   geom_smooth(data=top5 ,aes(x=year, y=OTHERpct, colour='Other'), alpha= 0.1) +
-  labs(x = "Draft Year", y="Percent of Draftees", title="Canada's Downfall?", subtitle="As Canada loses its stronghold on the NHL Entry Draft, European nations start to take over") +
-    theme(legend.position = c(0, 1),legend.justification = c(0, 1)) + scale_colour_manual(name = "Legend", 
+  labs(x = "Draft Year", y="Percent of Total Draftees", title="Canada's Downfall?", subtitle="As Canada loses its stronghold on the NHL Entry Draft, European nations start to take over") + scale_colour_manual(name = "Legend", 
                       values = c("Canada" = "#D80621", 
                                  "US" = "#0A3161",
-                                 "Other" = "#006939"))
-
+                                 "Other" = "#D3B300"))
 ```
 
-```{r}
+Now that we have these league-wide trends by nationality, another thing I wanted to take a look at was drafting habits by team. There are a multitude of different narratives surrounding teams, like Detroit loving to take Swedes and Washington loving to take Russians (or prospects from the WHL). Each of these narratives have some basis in actuality - The Red Wings experienced great success by drafting Swedish players at a time when North Americans were still the go-to choice for many teams. Nick Lidstrom, one of the greatest defensemen of all time, was drafted 53rd overall in 1989, right around the crossover of US players and European players in the graph above. The reason for this affinity? A Swedish flavor in their player personnel department. Their current Director of European Scouting, Hakan Andersson, is Swedish, and is credited with the selections of Pavel Datsyuk and fellow Swede Henrik Zetterberg among others. These were two key pieces of the Red Wings dynasty that won the Stanley Cup in 2008. The Capitals' Assistant General Manager, Ross Mahoney, started his playing and coaching career in the Western Hockey League, so it is also no surprise that this is a league he feels comfortable selecting prospects from.
+
+I went ahead and grouped our selection data by some of these pairings: (league-team, nationality-team), to see what some of the biggest pipelines are.
+
+```{r, warning=FALSE, message=FALSE}
 draft_data <- separate(data = draft_data, col = amateur_team, into = c('amateur_team', 'league'), sep = "\\(")
 draft_data <- draft_data %>% 
   mutate(league = str_replace(league, "\\)", ""))
@@ -90,19 +93,36 @@ picks_by_amateur_team <- draft_data %>% group_by(team, amateur_team) %>% summari
 picks_by_amateur_team
 picks_by_league <- draft_data %>% group_by(team, league) %>% summarise(count=n()) %>% arrange(desc(count))
 picks_by_league
-picks_by_league %>% filter(grepl("Sweden", league, fixed = TRUE)) %>% group_by(team) %>% summarise(total = sum(count)) %>% arrange(desc(total))
-picks_by_league %>% filter(grepl("Russia", league, fixed = TRUE)) %>% group_by(team) %>% summarise(total = sum(count)) %>% arrange(desc(total))
-picks_by_league %>% filter(grepl("Finland", league, fixed = TRUE)) %>% group_by(team) %>% summarise(total = sum(count)) %>% arrange(desc(total))
+picks_by_league %>% filter(grepl("Sweden", league, fixed = TRUE)) %>% group_by(team) %>% summarise(setotal = sum(count)) %>% arrange(desc(total))
+picks_by_league %>% filter(grepl("Russia", league, fixed = TRUE)) %>% group_by(team) %>% summarise(rutotal = sum(count)) %>% arrange(desc(total))
+picks_by_league %>% filter(grepl("Finland", league, fixed = TRUE)) %>% group_by(team) %>% summarise(fitotal = sum(count)) %>% arrange(desc(total))
 ```
+
+Our first one here is NHL team and amateur team. The Maple Leafs haven't actually picked a player from the Marlboros since 1989, which is when the OHL team moved to Hamilton and later Guelph. I expect to see a lot of original six teams on here, and this is an example. The Marlboros were actually sponsored/owned by the Maple Leafs until 1967, when junior teams were no longer allowed to be sponsored by professional teams. They were both still owned by the Smythe family (yes, Conn Smythe) until 1989 so I'm assuming that's the connection there.
+
+Moving down the list, I don't think anything else here is really that fascinating. The Capitals are on here with London. I can think of two current players, Connor McMichael and John Carlson, that played for London. I believe that Carlson was drafted out the USHL however, and played in London the next season.
+
+Next table is leagues. We know the Canadiens love to stick to their Quebec natives and other French-Canadian individuals. And what do you know? The Capitals are the youngest team in the top 10 in terms of date founded, but it seems there's a pretty solid pipeline there.
+
+The next table is Swedish draft picks. And at the top is our other example. By FAR, they've taken the most Swedish players in history. Following this we have Russia and Finland. Tampa Bay is not who I expected to be top for Russia, but it's something I could see. They have a good amount of Russian players. The Capitals are up there, but not as high as I thought they would be. The Finland table doesn't have any crazy stories I don't think. The most interesting thing to me is the marriage between Detroit and Stockholm.
+
+## Pick Value
+
+My main goal was to find out how the value of a pick decreases as you move down the draft by using historical data to calculate the probability of "success" at a given pick. We can do this using a variety of definitions, but the first one I want to look at is the average number of NHL games played based on pick number. Without knowing anything else about the prospect, if we are told that he is picked 16th overall, how many career NHL games can we expect him to play. Now obviously this is a rough estimate. Careers can vary in so many different ways, but I think we have enough data to give us an idea of how the talent is spread throughout the draft. If a pick is successful, the player should be playing more games and staying in the NHL as long as possible.
 
 ```{r}
 draft_data <- draft_data %>% mutate(games_played = ifelse(is.na(games_played), 0, games_played)) %>% mutate(point_shares = ifelse(is.na(point_shares), 0, point_shares)) %>% mutate(pspg = ifelse(is.na(points), 0, point_shares/games_played))
 gp <- draft_data %>% group_by(overall_pick) %>% summarise(mean_games = mean(games_played), mean_point_shares = mean(point_shares), mean_pspg = mean(pspg),count = n())
 gp <- gp %>% filter(count > 30)
-
 ggplot() + 
   geom_point(data=gp, aes(x=overall_pick, y=mean_games))
 ```
+
+So this is the curve we get. Towards the left we have first rounders and as we move right we move down the draft board. My initial reaction to this graph is that there really seems to be a drop off after the first round. The decline is so sharp it makes me wonder how much of those games are those prospects getting simply because they have the first round label? Even though they might not necessarily deserve those games, sometimes they may be given a longer or second look because there is pressure on the front office and on those picks.
+
+I'm also going to look at Point Shares, hockey's version of Wins Above Replacement. It essentially cumulatively measures throughout a player's career how they affect their team's chances of winning using a variety of statistics when compared to a "league average" player. I also want to look at Point Shares Per Game, because Point Shares are cumulative over a career, like I said. Players like Mario Lemieux, whose career was cut short due to health issues might end up with less than a decent second liner who played a lengthy career. It should also be noted that goalies have boosted Point Share numbers because they have a bigger impact on the game, but since we're looking at average of each pick it shouldn't be skewing our data.
+
+Lastly I'm also going to fit a regression curve to the data. I won't use polynomial or linear regression, but instead use a log curve, which will fit our data perfectly.
 
 ```{r}
 ggplot(gp, aes(x=overall_pick, y=mean_games)) + 
@@ -116,27 +136,28 @@ ggplot(gp, aes(x=overall_pick, y=mean_pspg)) +
   stat_smooth(method="lm", formula=y ~ log(x),colour="blue")
 ```
 
+It looks like the log regression is a good fit. Point shares have a similar trend to games played. I'm going to use PSPG (Point Shares Per Game) moving forward because I think it measures the game by game impact of a player more effectively than games played or a one-dimensional stat like points or goals.
+
+I'm going to fit these curves and put in three new columns of expected stats based on draft position. This way I can see players who have underperformed or overperformed their draft position.
+
 ```{r}
 fit <- lm(mean_games ~ log(overall_pick), data=gp)
 pred_games <- fit %>% predict(draft_data)
 draft_data <- draft_data %>% mutate(xgames = pred_games, residualgames= games_played-xgames)
-
 fit <- lm(mean_point_shares ~ log(overall_pick), data=gp)
 pred_point_shares <- fit %>% predict(draft_data)
 draft_data <- draft_data %>% mutate(xpointshares = pred_point_shares, residualpointshares= point_shares-xpointshares)
-
 fit <- lm(mean_pspg ~ log(overall_pick), data=gp)
 pred_pspg <- fit %>% predict(draft_data)
 draft_data <- draft_data %>% mutate(xpspg = pred_pspg, residualpspg= pspg-xpspg)
+summary(fit)
 ```
 
 ```{r}
 top <- draft_data %>% 
   arrange(desc(residualpspg)) %>%
-  filter(position != 'G', games_played > 82) %>%
+  filter(position != 'G', games_played > 41) %>%
   select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
-
-
 head(top, 20) %>%
   gt() %>%
   cols_label(
@@ -153,10 +174,10 @@ head(top, 20) %>%
   ) %>%
   tab_header(
     title = "Is Kirill Kaprizov the Greatest NHL Draft Gem of All Time?",
-    subtitle = "Based on his draft position and impact so far, he's on track"
+    subtitle = "Based on his draft position and impact so far, he's on track (among skaters)"
   ) %>%  
   tab_source_note(
-    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 82 Career GP to qualify")
+    source_note = md("**By:** Jetson Ku  |  **Source:** [Hockey Reference](https://www.hockey-reference.com/) | Min. 41 Career GP to qualify")
   ) %>%
     tab_style(
     style = cell_text(color = "black", weight = "bold", align = "left"),
@@ -176,13 +197,14 @@ head(top, 20) %>%
   opt_row_striping()
 ```
 
+To me, these tables were the most interesting part of my investigation. I think this is a great list of draft picks who provided excellent value based on their draft positions. The only #1 overalls in the top 20 here are Mario and McDavid. That's just a testament to how incredible their careers have been so far. I also see this as a huge endorsement of Cale Makar, who has entered himself into the discussion of possible greatest defenseman of all time. I'm happy with that list. Now what about busts?
+
 ```{r}
 library(gt)
 bottom <- draft_data %>% 
   arrange((residualpspg)) %>%
-  filter(position != 'G', games_played > 82) %>%
+  filter(position != 'G', games_played > 41) %>%
   select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
-
 head(bottom, 20) %>% 
   gt() %>%
   cols_label(
@@ -222,13 +244,16 @@ head(bottom, 20) %>%
   opt_row_striping()
 ```
 
+I have to admit - I only know two namse on this list. The only players drafted after 2001: Lias Andersson and Quinton Byfield. And to our table's credit, Andersson's career has indeed been a bit of a disaster so far. From [going viral for a reason he probably regrets](https://www.youtube.com/watch?v=Q-yJHAJHSbE), to spending time in the minors and then back in Sweden, to then being traded, he has definitely struggled to establish himself in the NHL as a top-10 pick. Notable names he was picked over include Jeremy Swayman, Jake Oettinger, Josh Norris, and the current NHL LEADER in goals - Jason Robertson. (Although New York is not the only team to have missed on Robertson). Byfield is still developing, and I think it's unfair to call him a bust yet. However, for a second overall pick, his career hasn't taken off quite yet.
+
+Stojanov, who was a below average player by these standards, was picked 7th in 1991. He is actually Macedonian, and was a huge disappointment for the Vancouver Canucks, who ended up trading him to Pittsburgh for Markus Naslund. Stojanov played 45 games over two seasons for Pittsburgh, where he went down to the minors and never came back up again. Naslund? Went on to be the captain of the Canucks and became their all-time leading scorer, playing for over 10 years. Ol' Alek is thus known best for being dealt in one of the most lopsided trades ever.
+
 ```{r}
 library(gt)
 bottom <- draft_data %>% 
   arrange((residualpspg)) %>%
   filter(position != 'G', games_played > 41, year > 2009) %>%
   select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
-
 head(bottom, 20) %>% 
   gt() %>%
   cols_label(
@@ -268,13 +293,14 @@ head(bottom, 20) %>%
   opt_row_striping()
 ```
 
+Since 2010? Yikes Rangers. Also for as good as a team as the Devils are now, they whiffed on some picks in their day.
+
 ```{r}
 library(gt)
 bottom <- draft_data %>% 
   arrange(desc(residualpspg)) %>%
   filter(position == 'G', games_played > 41) %>%
   select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
-
 head(bottom, 20) %>% 
   gt() %>%
   cols_label(
@@ -314,13 +340,14 @@ head(bottom, 20) %>%
   opt_row_striping()
 ```
 
+Well here's something for the Rangers. No real surprises here. Some legends are on this list. I don't see Braden Holtby though.
+
 ```{r}
 library(gt)
 top <- draft_data %>% 
   arrange(desc(residualpspg)) %>%
   filter(position != 'G', games_played > 41, year > 2017) %>%
   select(year, overall_pick, team, player, to_year, amateur_team, pspg, xpspg, residualpspg)
-
 head(top, 20) %>% 
   gt() %>%
   cols_label(
@@ -360,61 +387,95 @@ head(top, 20) %>%
   opt_row_striping()
 ```
 
+Fehervary's on there! As a guy who doesn't put up points like some of the other elite scorers on this table, it's cool to see that Point Shares has him as a gem, even though his game is somewhat hard to quantify as a shutdown defenseman.
+
+Lastly, I'm going to look at the probability of each pick being an "NHLer". Someone who plays 243 career games (3 seasons) is someone who has stuck in the league long enough for us to consider them a successful NHLer. I'm going to fit a curve to this and generate a table telling me the probability for each pick. I'm also including the expected PSPG at each position. By combining these, we get an expected value for PSPG. (If the probability of making it is low and the impact is low, the pick is worth less).
+
 ```{r}
-draft_data <- draft_data %>% mutate(is_nhler = (games_played > 199))
+draft_data <- draft_data %>% mutate(is_nhler = (games_played > 243))
 by_overall <- draft_data %>% group_by(overall_pick) %>% summarise(count=n(), nhlers=sum(is_nhler))
 by_overall <- by_overall %>% mutate(probability = 100*nhlers/count)
-
 ggplot(by_overall, aes(x=overall_pick, y=probability)) + 
   geom_point(col = 'blue') + 
   stat_smooth(method="lm", formula=y ~ log(x),colour="blue")
-
 fit <- lm(probability ~ log(overall_pick), data=by_overall)
 pred_prob <- fit %>% predict(by_overall)
 by_overall <- by_overall %>% mutate(xprobability = pred_prob)
+fit <- lm(mean_pspg ~ log(overall_pick), data=gp)
+pred_pspg <- fit %>% predict(by_overall)
+by_overall <- by_overall %>% mutate(xpspg = pred_pspg)
+by_overall <- by_overall %>% mutate(evpspg = xpspg*(xprobability/100))
+
 ```
 
 ## Hindsight is 20/20
 
+Now that we have these probabilities, what if we use them to evaluate pick swaps? I'm looking at two draft day trades in recent memory, both of which involve Washington. The first is in 2020:
+
 ### 2020 - Calgary trades 19th overall pick to Rangers for 22nd & 72nd overall picks; Calgary trades 22nd overall pick to Washington for 24th & 80th overall picks
 
-Calgary gets: [24th, 72nd, 80th picks]{style="color: green;"} = 39.543724+22.742897+21.131643 = 0.8341826 eNHLers
+Calgary gets: [24th, 72nd, 80th picks]{style="color: green;"} = 0.01118422+0.003559693+0.003051762 = 0.01779568 ePSPG
 
-Calgary gives: [19th]{style="color: red;"} = 43.116342 = 0.43116342 eNHLers
+Calgary gives: [19th]{style="color: red;"} = 0.01335337 = 0.01335337 ePSPG
 
-Rangers get: [19th]{style="color: green;"} = 43.116342 = 0.43116342 eNHLers
+Rangers get: [19th]{style="color: green;"} = 0.01335337 = 0.01335337 ePSPG
 
-Rangers give: [22nd, 72nd]{style="color: red;"} = 40.874369+22.742897 = 0.6361727 eNHLers
+Rangers give: [22nd, 72nd]{style="color: red;"} = 0.01196968+0.003559693 = 0.01552937 ePSPG
 
-Washington gets: [22nd]{style="color: green;"} = 40.874369 = 0.40874369 eNHLers
+Washington gets: [22nd]{style="color: green;"} = 0.01196968 = 0.01196968 ePSPG
 
-Washington gives: [24th, 80th]{style="color: red;"} = 39.543724+21.131643 = 0.6067537 eNHLers
+Washington gives: [24th, 80th]{style="color: red;"} = 0.01118422+0.003051762 = 0.01423598 ePSPG
 
-Calgary added 0.4030192 expected NHLers to their franchise assets.
+Calgary added 0.00444231 expected PSPG to their franchise assets.
 
-Rangers took 0.2050093 expected NHLers out of their franchise assets.
+Rangers took -0.002176 expected PSPG out of their franchise assets.
 
-Washington took 0.19801 expected NHLers out of their franchise assets.
+Washington took -0.0022663 expected PSPG out of their franchise assets.
+
+Based on our probabilities, Calgary wins this trade and Washington loses. Now let's look at who really *won* the trade.
+
+Calgary gets: Connor Zary, Jeremy Poirer, Jake Boltmann
+
+Calgary gives: Braden Schneider
+
+Rangers get: Braden Schneider
+
+Rangers give: Hendrix Lapierre, Jeremy Poirer
+
+Washington gets: Hendrix Lapierre
+
+Washington gives: Connor Zary, Jake Boltmann
+
+Zary and Poirer are legit prospects. Schneider is a full time NHLer now, albeit not an elite one. He's 70/243 games down. Lapierre is right on the edge of the Capitals' roster, but still needs time to develop. Out of all the players involved, Schneider looks to be the best asset, which is appropriate given that he was the highest pick. Based on the return, I'm going to give this trade to Calgary. I think their haul has the most upside, but the Rangers definitely didn't get fleeced. Jury's still out on Lapierre. I think one problem with these probabilities is that there's too much parity. It seems like there isn't much of an increase in value when moving up the board. It's also a bit of a self-selecting sample. Teams are likely to move up for prospects they are passionate about, which makes it more likely for that prospect to succeed. The point of the probabilities though is to evaluate the trade WITHOUT using hindsight. I do think the math works here and that Calgary got the best value.
 
 ### 2016 - Washington trades 26th overall pick to St. Louis for 28th & 87th overall picks
 
-St. Louis gets: [26th]{style="color: green;"} = 38.319649 = 0.38319649 eNHLers
+St. Louis gets: [26th]{style="color: green;"} = 0.0104852 = 0.0104852 ePSPG
 
-St. Louis gives: [28th, 87th]{style="color: red;"} = 37.186332+19.848862 = 0.5703519 eNHLers
+St. Louis gives: [28th, 87th]{style="color: red;"} = 0.009858123+0.002675321 = 0.01253344 ePSPG
 
-Washington gets: [28th, 87th]{style="color: green;"} = 37.186332+19.848862 = 0.5703519 eNHLers
+Washington gets: [28th, 87th]{style="color: green;"} = 0.009858123+0.002675321 = 0.01253344 ePSPG
 
-Washington gives: [26th]{style="color: red;"} = 38.319649 = 0.38319649 eNHLers
+Washington gives: [26th]{style="color: red;"} = 0.0104852 = 0.0104852 ePSPG
 
-St. Louis took 0.1871554 expected NHLers out of their franchise assets.
+St. Louis took 0.00204824 expected PSPG out of their franchise assets.
 
-Washington added 0.1871554 expected NHLers to their franchise assets.
+Washington added 0.00204824 expected PSPG to their franchise assets.
 
-```{r}
-picks_by_amateur_team <- draft_data %>% group_by(team, amateur_team) %>% summarise(count=n()) %>% arrange(desc(count))
-picks_by_amateur_team
-```
+Welp.
 
-```{r}
+St. Louis gets: Tage Thompson
 
-```
+St. Louis gives: Lucas Johansen, Garrett Pilon
+
+Washington gets: Lucas Johansen, Garrett Pilon
+
+Washington gives: Tage Thompson
+
+This looks worse than it is, I promise. OK I don't promise. Fundamentally, the trade wasn't bad. The selections... could have been... different. Tage Thompson has 34 points in 25 games so far this season and is lighting the league up with Buffalo. He didn't quite pan out in St. Louis, but he was part of the package that landed them their captain, Ryan O'Reilly. Johansen and Pilon seem to be stuck in the minors with no clear path ahead of them.
+
+In defense of the math: Two NHL All Stars were picked in the next 11 picks. There were still elite players on the board. If Washington hits on one of them, this trade looks great for them. At 87, there are still some useful pieces on the board, and Garrett Pilon has pushed the Caps' roster several times, playing 3 games in his career so far. If Johansen isn't the pick here, I think hindsight aligns with the math.
+
+### Our conclusion?
+
+Trading up is never worth it? No. That's not the takeaway. If you trust in your scouting department, which I imagine most front offices do, you trade up if you need to. The evidence *does* point to the fact that more picks are more important than high picks though. I think this does allude to an interesting element of human error, in which we believe so confidently in our ability to draft prospects that we decide we don't need more picks. In fact, simple probability says you should collect as many picks as possible. As some hockey player once said "You miss 100% of the shots you don't take".
